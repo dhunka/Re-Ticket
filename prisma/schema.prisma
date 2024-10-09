@@ -1,0 +1,109 @@
+// schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Usuario {
+  id                Int       @id @default(autoincrement())
+  nombre            String
+  correo            String    @unique
+  password          String
+  rol               String    // 'comprador', 'vendedor', 'administrador'
+  metodo_pago       String    // ID del método de pago registrado en la pasarela de pagos
+  cuenta_vendedor   String?   // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
+  creado_en         DateTime  @default(now())
+  verificado        Boolean   @default(false) // Indica si el usuario ha verificado su identidad
+  foto_perfil       String?   // URL de la foto de perfil del usuario
+  eventosOrganizados Evento[]  @relation("Organizador")
+  ticketsVendidos   Ticket[]   @relation("Vendedor")
+  compras           Compra[]    @relation("Comprador")
+  valoraciones      Valoracion[] @relation("VendedorValoracion")
+  disputas          Disputa[]   @relation("CompradorDisputa")
+  notificaciones     Notificacion[]
+
+  Valoracion Valoracion[]
+}
+
+model Evento {
+  id                Int       @id @default(autoincrement())
+  nombre            String
+  ubicacion         String
+  fecha_evento      DateTime
+  fecha_termino     DateTime
+  descripcion       String?
+  organizador_id    Int
+  creado_en         DateTime  @default(now())
+  categoria         String
+  organizador       Usuario    @relation("Organizador", fields: [organizador_id], references: [id])
+  tickets           Ticket[]
+}
+
+model Ticket {
+  id                Int       @id @default(autoincrement())
+  evento_id         Int
+  vendedor_id       Int
+  precio            Decimal
+  estado            String    // 'disponible', 'vendido', 'cancelado'
+  archivo_url       String?
+  fecha_creacion    DateTime  @default(now())
+  fecha_vencimiento DateTime
+  evento            Evento     @relation(fields: [evento_id], references: [id])
+  vendedor          Usuario    @relation("Vendedor", fields: [vendedor_id], references: [id])
+  compras           Compra[]
+  disputas          Disputa[]  @relation("TicketDisputa") // Campo de relación agregado
+}
+
+model Compra {
+  id                   Int       @id @default(autoincrement())
+  ticket_id           Int
+  comprador_id        Int
+  precio_total        Decimal
+  fecha_compra        DateTime  @default(now())
+  metodo_pago         String    // Referencia a ID del pago en la pasarela
+  estado              String    // 'pendiente', 'completado', 'disputa'
+  fondos_liberados    Boolean   @default(false) // Si los fondos han sido liberados al vendedor
+  fecha_fondos_liberados DateTime?
+  confirmacion        Boolean   @default(false) // Indica si el comprador ha confirmado el uso del ticket
+  ticket              Ticket     @relation(fields: [ticket_id], references: [id])
+  comprador           Usuario    @relation("Comprador", fields: [comprador_id], references: [id])
+  disputas            Disputa[]
+}
+
+model Disputa {
+  id                Int       @id @default(autoincrement())
+  compra_id        Int
+  comprador_id     Int
+  ticket_id        Int
+  descripcion      String?
+  estado           String    // 'abierta', 'resuelta'
+  fecha_creacion    DateTime  @default(now())
+  compra           Compra     @relation(fields: [compra_id], references: [id])
+  comprador        Usuario    @relation("CompradorDisputa", fields: [comprador_id], references: [id])
+  ticket           Ticket     @relation("TicketDisputa", fields: [ticket_id], references: [id]) // Campo de relación agregado
+}
+
+model Valoracion {
+  id                Int       @id @default(autoincrement())
+  vendedor_id      Int
+  comprador_id     Int
+  puntuacion       Int       // Puntuación del 1 al 5
+  comentario       String?
+  fecha_creacion    DateTime  @default(now())
+  vendedor         Usuario    @relation("VendedorValoracion", fields: [vendedor_id], references: [id])
+  comprador        Usuario    @relation(fields: [comprador_id], references: [id])
+}
+
+model Notificacion {
+  id                Int       @id @default(autoincrement())
+  usuario_id       Int
+  mensaje          String
+  leido            Boolean    @default(false) // Indica si la notificación ha sido leída
+  fecha_creacion    DateTime  @default(now())
+  usuario          Usuario    @relation(fields: [usuario_id], references: [id])
+}
