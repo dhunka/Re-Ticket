@@ -12,10 +12,13 @@ generator client {
 model Usuario {
   id                Int       @id @default(autoincrement())
   nombre            String
+  apellido          String
+  rut               String    @unique
   correo            String    @unique
   password          String
-  rol               String    // 'comprador', 'vendedor', 'administrador'
-  metodo_pago       String    // ID del método de pago registrado en la pasarela de pagos
+  fecha_de_nacimiento         DateTime
+  rol               String?    // 'comprador', 'vendedor', 'administrador'
+  metodo_pago       String?    // ID del método de pago registrado en la pasarela de pagos
   cuenta_vendedor   String?   // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
   creado_en         DateTime  @default(now())
   verificado        Boolean   @default(false) // Indica si el usuario ha verificado su identidad
