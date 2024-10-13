@@ -1,5 +1,7 @@
 "use client";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+
 
 function RegisterPage() {
     const {
@@ -7,6 +9,8 @@ function RegisterPage() {
         handleSubmit,
         formState: { errors }
     } = useForm();
+
+    const router = useRouter();
 
     const onSubmit = handleSubmit(async (data) => {
         if (data.password !== data.confirmPassword) {
@@ -29,8 +33,10 @@ function RegisterPage() {
             }
         });
 
-        const resJSON = await res.json();
-        console.log(resJSON);
+        if(res.ok){
+            router.push('/auth/login')
+        }
+        console.log(res);
     });
     console.log(errors);
     return (
@@ -44,12 +50,18 @@ function RegisterPage() {
                         {
                             required: {
                                 value: true,
-                                message: "Este campo es obligatorio"
+                                message: "El nombre es obligatorio"
                             }
                         }
                     )}
                     className="p-3 rounded block mb-2 bg-slate-900 text-slate-300 w-full"
                 />
+
+                    {errors.nombre && (
+                    <span className="text-red-500 text-xs">
+                        {errors.nombre.message}
+                    </span>
+                    )}
 
                 <label htmlFor="apellido" className="text-slate-500 mb-2 block text-sm">Apellido</label>
                 <input type="text"
@@ -57,26 +69,34 @@ function RegisterPage() {
                         {
                             required: {
                                 value: true,
-                                message: "Este campo es obligatorio"
+                                message: "El apellido es obligatorio"
                             }
                         }
                     )}
                     className="p-3 rounded block mb-2 bg-slate-900 text-slate-300 w-full"
                 />
-
+                    {errors.apellido && (
+                    <span className="text-red-500 text-xs">
+                        {errors.apellido.message}
+                    </span>
+                    )}
                 <label htmlFor="rut" className="text-slate-500 mb-2 block text-sm">Rut</label>
                 <input type="text"
                     {...register("rut",
                         {
                             required: {
                                 value: true,
-                                message: "Este campo es obligatorio"
+                                message: "El rut es obligatorio"
                             }
                         }
                     )}
                     className="p-3 rounded block mb-2 bg-slate-900 text-slate-300 w-full"
                 />
-
+                    {errors.rut && (
+                    <span className="text-red-500 text-xs">
+                        {errors.rut.message}
+                    </span>
+                    )}
 
                 <label htmlFor="correo" className="text-slate-500 mb-2 block text-sm">Correo</label>
                 <input type="email"
@@ -84,13 +104,17 @@ function RegisterPage() {
                         {
                             required: {
                                 value: true,
-                                message: "Este campo es obligatorio"
+                                message: "El correo es obligatorio"
                             }
                         }
                     )}
                     className="p-3 rounded block mb-2 bg-slate-900 text-slate-300 w-full"
                 />
-
+                    {errors.correo && (
+                    <span className="text-red-500 text-xs">
+                        {errors.correo.message}
+                    </span>
+                    )}
                 <label htmlFor="fecha_de_nacimiento" className="text-slate-500 mb-2 block text-sm">Fecha de Nacimiento</label>
                 <input 
                     type="date"
@@ -98,13 +122,17 @@ function RegisterPage() {
                         {
                             required: {
                                 value: true,
-                                message: "Este campo es obligatorio"
+                                message: "La fecha de nacimiento es obligatorio"
                             }
                         }
                     )}
                     className="p-3 rounded block mb-2 bg-slate-900 text-slate-300 w-full"
                 />
-
+                    {errors.fecha_de_nacimiento && (
+                    <span className="text-red-500 text-xs">
+                        {errors.fecha_de_nacimiento.message}
+                    </span>
+                    )}
 
                 <label htmlFor="password" className="text-slate-500 mb-2 block text-sm">Contraseña</label>
                 <input type="password"
@@ -112,13 +140,17 @@ function RegisterPage() {
                         {
                             required: {
                                 value: true,
-                                message: "Este campo es obligatorio"
+                                message: "La contraseña es obligatoria"
                             }
                         }
                     )}
                     className="p-3 rounded block mb-2 bg-slate-900 text-slate-300 w-full"
                 />
-
+                    {errors.password && (
+                    <span className="text-red-500 text-xs">
+                        {errors.password.message}
+                    </span>
+                    )}
                 <label htmlFor="confirmPassword" className="text-slate-500 mb-2 block text-sm">Confirmar Contraseña</label>
                 <input type="password"
                     {...register("confirmPassword", 
