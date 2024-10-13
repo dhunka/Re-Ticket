@@ -7,21 +7,17 @@ export async function POST(request: NextRequest) {
         const data = await request.json();
         console.log(data);
 
-        // Encriptar la contraseña
-        const saltRounds = 10; // Puedes ajustar este valor para mayor seguridad
+        const saltRounds = 10; 
         const hashedPassword = await bcrypt.hash(data.password, saltRounds);
-        console.log('Contraseña encriptada:', hashedPassword); // Añade esta línea
-
-        // Procesar la fecha de nacimiento
+        console.log('Contraseña encriptada:', hashedPassword); 
         const birthDate = new Date(data.fecha_de_nacimiento);
         birthDate.setUTCHours(0, 0, 0, 0); 
 
-        // Crear nuevo usuario con la contraseña encriptada y la fecha de nacimiento ajustada
         const newUser = await db.usuario.create({
             data: {
                 ...data,
-                password: hashedPassword, // Guarda la contraseña encriptada
-                fecha_de_nacimiento: birthDate // Guarda la fecha de nacimiento
+                password: hashedPassword,
+                fecha_de_nacimiento: birthDate 
             }
         });
 
