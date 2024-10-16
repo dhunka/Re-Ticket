@@ -1,17 +1,29 @@
-"use client";
-import { signOut } from "next-auth/react";
+'user client'
+import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs'
 
-function DashboardPage(){
-    return(
-        <section className="h-[calc(100vh-7rem)] flex justify-center 
-        items-center">
-            <div>
-                <h1 className="text-white text-5xl">DashBoard</h1>
-                <button className="bg-white text-black px-4 py-2 rounded-md mt-4"
-                 onClick={() => signOut()}
-                 >Logout</button>
-            </div>
-        </section>
-    )
+
+function DashboardPage() {
+  const user = useUser();
+  console.log(user);
+
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+        <main>
+          <header>
+            <SignedOut>
+              <SignInButton />
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
+          </header>
+          </main>
+        </body>
+      </html>
+    </ClerkProvider>
+  )
 }
+
 export default DashboardPage

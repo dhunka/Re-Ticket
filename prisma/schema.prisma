@@ -10,28 +10,30 @@ generator client {
 }
 
 model Usuario {
-  id                Int       @id @default(autoincrement())
-  nombre            String
-  apellido          String
-  rut               String    @unique
-  correo            String    @unique
-  password          String
-  fecha_de_nacimiento         DateTime
-  rol               String?    // 'comprador', 'vendedor', 'administrador'
-  metodo_pago       String?    // ID del método de pago registrado en la pasarela de pagos
-  cuenta_vendedor   String?   // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
-  creado_en         DateTime  @default(now())
-  verificado        Boolean   @default(false) // Indica si el usuario ha verificado su identidad
-  foto_perfil       String?   // URL de la foto de perfil del usuario
+  id                 Int       @id @default(autoincrement())
+  clerkId            String?   @unique  // ID del usuario en Clerk
+  nombre             String
+  apellido           String
+  rut                String    @unique
+  correo             String    @unique
+  password           String
+  fecha_de_nacimiento DateTime
+  rol                String?   // 'comprador', 'vendedor', 'administrador'
+  metodo_pago        String?   // ID del método de pago en la pasarela de pagos
+  cuenta_vendedor    String?   // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
+  creado_en          DateTime  @default(now())
+  verificado         Boolean   @default(false) // Indica si el usuario ha verificado su identidad
+  foto_perfil        String?   // URL de la foto de perfil del usuario
   eventosOrganizados Evento[]  @relation("Organizador")
-  ticketsVendidos   Ticket[]   @relation("Vendedor")
-  compras           Compra[]    @relation("Comprador")
-  valoraciones      Valoracion[] @relation("VendedorValoracion")
-  disputas          Disputa[]   @relation("CompradorDisputa")
+  ticketsVendidos    Ticket[]  @relation("Vendedor")
+  compras            Compra[]  @relation("Comprador")
+  valoraciones       Valoracion[] @relation("VendedorValoracion")
+  disputas           Disputa[]  @relation("CompradorDisputa")
   notificaciones     Notificacion[]
 
-  Valoracion Valoracion[]
+  Valoracion         Valoracion[]
 }
+
 
 model Evento {
   id                Int       @id @default(autoincrement())
