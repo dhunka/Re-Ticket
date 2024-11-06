@@ -9,7 +9,7 @@ import { Search, Menu, Facebook, Twitter, Instagram, Linkedin } from 'lucide-rea
 
 
 
-function HomePage() {
+export default function HomePage() {
   return (
     <>
       <header className="bg-white text-gray-800 shadow-sm">
@@ -159,4 +159,3 @@ function HomePage() {
   );
 }
 
-export default HomePage
