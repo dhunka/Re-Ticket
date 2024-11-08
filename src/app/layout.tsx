@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider} from '@clerk/nextjs'
 import Header from "@/components/ui/header";
 import {dark} from '@clerk/themes';
+import Footer from "@/components/ui/footer";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -38,7 +39,8 @@ export default function RootLayout({
               <div className="flex items-start justify-center">
               <div className="mt-20">{children}</div>
               </div>  
-          </main>       
+          </main>   
+          <Footer/>    
         </body>
       </html>
     </ClerkProvider>
