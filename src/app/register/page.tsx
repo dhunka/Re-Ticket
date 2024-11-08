@@ -17,6 +17,7 @@ const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [rut, setRut] = useState(''); 
   const [password, setPassword] = useState('');
   const [pendingVerification, setPendingVerification] = useState(false);
   const [code, setCode] = useState('');
@@ -28,7 +29,6 @@ const RegisterPage = () => {
   const handleError = (err: ClerkError) => {
     console.error('Error detallado:', JSON.stringify(err, null, 2));
     if (err.errors && err.errors.length > 0) {
-      // Usar longMessage si está disponible para más detalles
       setError(err.errors[0].longMessage || err.errors[0].message);
     } else {
       setError(err.message || 'Ha ocurrido un error');
@@ -54,15 +54,14 @@ const RegisterPage = () => {
         firstName,
         lastName,
         emailAddress: email,
-        password,
+        password, // Esto solo se usa para Clerk
       });
 
       console.log('Resultado de creación:', result);
 
       setVerificationStatus('Preparando verificación de email...');
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      
-      console.log('Verificación preparada exitosamente');
+
       setVerificationStatus('Código de verificación enviado. Por favor revisa tu email.');
       setPendingVerification(true);
     } catch (err) {
@@ -88,30 +87,53 @@ const RegisterPage = () => {
 
     try {
       setVerificationStatus('Verificando código...');
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
-        code,
-      });
-      
-      console.log('Resultado de verificación:', completeSignUp);
+      const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
+
+      console.log('Resultado de verificación completo:', completeSignUp);
 
       if (completeSignUp.status === 'complete') {
         setVerificationStatus('Verificación exitosa. Iniciando sesión...');
         await setActive({ session: completeSignUp.createdSessionId });
-        console.log('Sesión activada, redirigiendo...');
+
+        // Crear objeto de datos para enviar
+        const userData = {
+          clerkId: completeSignUp.createdUserId, // Asegúrate de que sea createdUserId
+          nombre: firstName,
+          apellido: lastName,
+          rut,
+          correo: email,
+          // No se incluye 'password' en el objeto userData
+        };
+
+        console.log('Datos a enviar al backend:', userData);
+
+        // Guardar usuario en la base de datos con Prisma
+        const saveUserResponse = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData),
+        });
+
+        // Log de la respuesta
+        const responseData = await saveUserResponse.json();
+        console.log('Respuesta del backend:', responseData);
+
+        if (!saveUserResponse.ok) {
+          throw new Error(responseData.error || 'Error al guardar el usuario en la base de datos');
+        }
+
         router.push('/');
       } else {
-        console.log('Estado de verificación incompleto:', completeSignUp);
         setError(`La verificación no se pudo completar. Estado: ${completeSignUp.status}`);
       }
     } catch (err) {
-      console.error('Error en la verificación:', err);
+      console.error('Error completo en la verificación:', err);
       handleError(err as ClerkError);
     } finally {
       setLoading(false);
     }
   };
 
-  
   return (
     <div className="w-full max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
       <h1 className="text-2xl font-bold mb-6 text-center">Registro</h1>
@@ -155,6 +177,22 @@ const RegisterPage = () => {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="rut" className="block text-sm font-medium text-gray-700">
+              RUT
+            </label>
+            <input
+              type="text"
+              id="rut"
+              value={rut}
+              onChange={(e) => setRut(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Ingrese su RUT"
               required
               disabled={loading}
             />
@@ -207,21 +245,20 @@ const RegisterPage = () => {
         <form onSubmit={onPressVerify} className="space-y-4">
           <p className="text-sm text-gray-600 text-center mb-4">
             Te hemos enviado un código de verificación a {email}.<br />
-            Por favor, revisa tu bandeja de entrada.
+            Ingresa el código aquí para completar tu registro.
           </p>
+
           <div>
-            <label htmlFor="code" className="block text-sm font-medium text-gray-700">
-              Código de verificación
+            <label htmlFor="verification_code" className="block text-sm font-medium text-gray-700">
+              Código de Verificación
             </label>
             <input
               type="text"
-              id="code"
+              id="verification_code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Ingresa el código de 6 dígitos"
               required
-              disabled={loading}
             />
           </div>
 
@@ -230,9 +267,9 @@ const RegisterPage = () => {
             disabled={loading}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            {loading ? 'Verificando...' : 'Verificar correo'}
-          </button> 
-        </form>    
+            {loading ? 'Verificando...' : 'Verificar cuenta'}
+          </button>
+        </form>
       )}
     </div>
   );

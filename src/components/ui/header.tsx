@@ -42,7 +42,7 @@ export default async function Header() {
           </div>
           {!userId && (
             <>
-              <Link href="/sign-up" className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+              <Link href="/register" className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
                 Registrarse
               </Link>
               <Link href="/login" className="text-orange-500 hover:text-orange-600">
