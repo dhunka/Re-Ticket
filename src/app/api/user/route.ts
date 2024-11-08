@@ -9,10 +9,7 @@ export async function GET() {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  // Get the Backend API User object when you need access to the user's information
   const user = await currentUser()
-
-  // Perform your Route Handler's logic with the returned user object
 
   return NextResponse.json({ user: user }, { status: 200 })
 }

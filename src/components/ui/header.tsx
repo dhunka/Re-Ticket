@@ -14,7 +14,7 @@ export default async function Header()  {
                     <div className='flex gap-4 items-center'>
                         {!userId && (
                           <>
-                            <Link href='/sign-up'>Registro</Link>
+                            <Link href='/register'>Registro</Link>
                             <Link href='/login'>Login</Link>
                           </>  
                         )}
