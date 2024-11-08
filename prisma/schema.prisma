@@ -16,8 +16,8 @@ model Usuario {
   apellido           String
   rut                String    @unique
   correo             String    @unique
-  password           String
-  fecha_de_nacimiento DateTime
+  password           String?
+  fecha_de_nacimiento DateTime?
   rol                String?   // 'comprador', 'vendedor', 'administrador'
   metodo_pago        String?   // ID del método de pago en la pasarela de pagos
   cuenta_vendedor    String?   // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
