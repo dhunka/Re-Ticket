@@ -37,7 +37,7 @@ export default function RootLayout({
               <Header/>
           <main>
               <div className="flex items-start justify-center">
-              <div className="mt-20">{children}</div>
+              <div >{children}</div>
               </div>  
           </main>   
           <Footer/>    
