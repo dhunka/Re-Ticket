@@ -83,8 +83,8 @@ const EventList: React.FC<{ title: string; events: Event[] }> = ({ title, events
           </CardContent>
           <CardFooter className="flex flex-col items-start p-4">
             <h3 className="font-semibold text-lg mb-1">{event.name}</h3>
-            <p className="text-sm text-gray-600 mb-2">{event.date}</p>
-            <Link href={`/event/${event.id}`}>
+            <p className="text-sm text-gray-600 mb-2">{event.date}</p>  
+            <Link href={`/entrada/${event.id}`}>
               <Button className='bg-orange-600'>Ver detalles</Button>
             </Link>
           </CardFooter>
