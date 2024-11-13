@@ -24,14 +24,22 @@ model Usuario {
   creado_en          DateTime  @default(now())
   verificado         Boolean   @default(false) // Indica si el usuario ha verificado su identidad
   foto_perfil        String?   // URL de la foto de perfil del usuario
-  eventosOrganizados Evento[]  @relation("Organizador")
   ticketsVendidos    Ticket[]  @relation("Vendedor")
   compras            Compra[]  @relation("Comprador")
   valoraciones       Valoracion[] @relation("VendedorValoracion")
   disputas           Disputa[]  @relation("CompradorDisputa")
   notificaciones     Notificacion[]
-
   Valoracion         Valoracion[]
+}
+
+model TipoEntrada {
+  id          Int       @id @default(autoincrement())
+  nombre      String    // 'VIP', 'Palco', 'General', etc.
+  descripcion String?
+  precio_base Decimal   // Precio base sugerido para este tipo de entrada
+  evento_id   Int
+  evento      Evento    @relation(fields: [evento_id], references: [id])
+  tickets     Ticket[]  // Relación con los tickets
 }
 
 
@@ -40,24 +48,25 @@ model Evento {
   nombre            String
   ubicacion         String
   fecha_evento      DateTime
-  fecha_termino     DateTime
+  url_foto          String?
   descripcion       String?
-  organizador_id    Int
   creado_en         DateTime  @default(now())
   categoria         String
-  organizador       Usuario    @relation("Organizador", fields: [organizador_id], references: [id])
   tickets           Ticket[]
+  tipos_entrada     TipoEntrada[]
 }
 
 model Ticket {
   id                Int       @id @default(autoincrement())
   evento_id         Int
   vendedor_id       Int
+  tipo_entrada_id   Int  
   precio            Decimal
   estado            String    // 'disponible', 'vendido', 'cancelado'
   archivo_url       String?
   fecha_creacion    DateTime  @default(now())
   fecha_vencimiento DateTime
+  tipo_entrada      TipoEntrada @relation(fields: [tipo_entrada_id], references: [id]) // Nueva relación
   evento            Evento     @relation(fields: [evento_id], references: [id])
   vendedor          Usuario    @relation("Vendedor", fields: [vendedor_id], references: [id])
   compras           Compra[]
