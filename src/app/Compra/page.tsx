@@ -71,7 +71,7 @@ const sellerData: SellerData = {
     {
       id: 'ticket-001',
       event: 'Korn',
-      price: 50,
+      price: 100,
       buyer: {
         name: 'John Doe',
         email: 'john.doe@example.com',

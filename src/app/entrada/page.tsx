@@ -1,29 +1,53 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import EstadioImage from '../../../public/images/estadio.png';
 import HomeImage from '../../../public/images/profile.jpg';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectLabel, SelectGroup } from "@/components/ui/select";
 import { Globe, Mail, AlertCircle, Calendar1 } from "lucide-react";
+import { MercadoPagoCheckout } from "@/components/ui/checkOutMp";
+
 
 export default function EntradaPage() {
-  // Establecer la opción predeterminada como "option1"
   const [selectedOption, setSelectedOption] = React.useState<string>("option1");
+
+  // Objeto con la información de las entradas
+  const ticketOptions = {
+    option1: {
+      title: "Duki - A.D.A Tour 2024",
+      variant: "CANCHA GENERAL",
+      price: 45000,
+      vendedorId: 2
+    },
+    option2: {
+      title: "Duki - A.D.A Tour 2024",
+      variant: "CANCHA VIP",
+      price: 85000,
+      vendedorId: 2
+    },
+    option3: {
+      title: "Duki - A.D.A Tour 2024",
+      variant: "RAPA NUI",
+      price: 75000,
+      vendedorId: 2
+    }
+  };
 
   const handleOptionSelect = (value: string) => {
     setSelectedOption(value);
     console.log(`Se seleccionó la opción: ${value}`);
   };
 
+  const selectedTicket = ticketOptions[selectedOption as keyof typeof ticketOptions];
+
   return (
     <div className="min-h-screen bg-[#030303]">
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Reducir el gap */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <div className="relative rounded-lg overflow-hidden mb-4"> {/* Reducción del margen */}
+            <div className="relative rounded-lg overflow-hidden mb-4">
               <Image 
                 src={HomeImage} 
                 alt="Duki - A.D.A Tour 2024" 
@@ -33,7 +57,7 @@ export default function EntradaPage() {
                 priority
               />
             </div>
-            <div className="relative rounded-lg overflow-hidden mb-4"> {/* Reducción del margen */}
+            <div className="relative rounded-lg overflow-hidden mb-4">
               <Image 
                 src={EstadioImage} 
                 alt="Duki - A.D.A Tour 2024 - Segunda Imagen" 
@@ -69,11 +93,17 @@ export default function EntradaPage() {
                 </div>
 
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-3xl font-bold text-white">$40.000</div>
+                  <div className="text-3xl font-bold text-white">
+                    ${selectedTicket.price.toLocaleString()}
+                  </div>
                 </div>
-                <Button className="w-full bg-yellow-400 hover:bg-[#c5a436] text-black">
-                  Comprar
-                </Button>
+                <MercadoPagoCheckout
+                  title={selectedTicket.title}
+                  price={selectedTicket.price}
+                  quantity={1}
+                  variant={selectedTicket.variant}
+                  vendedorId={selectedTicket.vendedorId}
+                />
               </CardContent>
             </Card>
 
@@ -119,7 +149,7 @@ export default function EntradaPage() {
                       <div>
                         <div className="font-semibold text-white">Duki - A.D.A Tour 2024</div>
                         <div className="text-xs text-white/70">CANCHA GENERAL</div>
-                        <div className="text-xs text-white/70">$45.000</div>
+                        <div className="text-xs text-white/70">\$45.000</div>
                       </div>
                     </SelectItem>
                     <SelectItem
@@ -137,7 +167,7 @@ export default function EntradaPage() {
                       <div>
                         <div className="font-semibold text-white">Duki - A.D.A Tour 2024</div>
                         <div className="text-xs text-white/70">CANCHA VIP</div>
-                        <div className="text-xs text-white/70">$85.000</div>
+                        <div className="text-xs text-white/70">\$85.000</div>
                       </div>
                     </SelectItem>
                     <SelectItem
@@ -155,7 +185,7 @@ export default function EntradaPage() {
                       <div>
                         <div className="font-semibold text-white">Duki - A.D.A Tour 2024</div>
                         <div className="text-xs text-white/70">RAPA NUI</div>
-                        <div className="text-xs text-white/70">$75.000</div>
+                        <div className="text-xs text-white/70">\$75.000</div>
                       </div>
                     </SelectItem>
                   </SelectGroup>
