@@ -58,7 +58,7 @@ model Evento {
   nombre            String
   ubicacion         String
   fecha_evento      DateTime
-  url_foto          String
+  url_foto          String?
   descripcion       String?
   creado_en         DateTime  @default(now())
   categoria         String
