@@ -18,17 +18,11 @@ export default async function Header() {
           <Link href="/" className="hover:text-orange-500 transition-colors">
             Inicio
           </Link>
-          <Link href="/productos" className="hover:text-orange-500 transition-colors">
-            Productos
-          </Link>
           <Link href="/sobre-nosotros" className="hover:text-orange-500 transition-colors">
-            Sobre Nosotros
-          </Link>
-          <Link href="/contacto" className="hover:text-orange-500 transition-colors">
-            Contacto
+            Preguntas Frecuentes
           </Link>
           <Link href="/categoria" className="hover:text-orange-500 transition-colors">
-            Categorias
+            Eventos
           </Link>
         </nav>
         <div className="hidden md:flex items-center space-x-4">

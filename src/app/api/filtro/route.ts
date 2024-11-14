@@ -1,17 +1,38 @@
+// app/api/filtro/route.ts
 import db from '@/libs/db';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { categoria } = req.query;
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const categoria = searchParams.get('categoria');
+
+  const whereClause: Prisma.EventoWhereInput = {};
+
+  if (categoria && categoria !== 'all') {
+    whereClause.categoria = String(categoria);
+  }
 
   try {
     const events = await db.evento.findMany({
-      where: {
-        categoria: categoria === 'all' ? undefined : String(categoria),
+      where: whereClause,
+      select: {
+        id: true,
+        nombre: true,
+        categoria: true,
+        ubicacion: true,
+        fecha_evento: true,
+        descripcion: true,
+        url_foto: true,
       },
     });
-    res.status(200).json(events);
+
+    return NextResponse.json(events);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching events' });
+    console.error('Error al obtener eventos:', error);
+    return NextResponse.json(
+      { error: 'Error al obtener eventos' },
+      { status: 500 }
+    );
   }
 }
