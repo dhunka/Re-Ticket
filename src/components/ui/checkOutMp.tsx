@@ -1,4 +1,7 @@
+<<<<<<< Updated upstream
 // src/components/MercadoPagoCheckout.tsx
+=======
+>>>>>>> Stashed changes
 'use client';
 
 import { useState } from 'react';
