@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { auth } from '@clerk/nextjs/server'
 import { UserButton } from '@clerk/nextjs'
+import ClientSearchBar from './ClientSearchBar'  // Importamos el componente de búsqueda
 
 export default async function Header() {
   const { userId } = await auth()
@@ -27,19 +27,13 @@ export default async function Header() {
           <Link href="/contacto" className="hover:text-orange-500 transition-colors">
             Contacto
           </Link>
+          <Link href="/categoria" className="hover:text-orange-500 transition-colors">
+            Categorias
+          </Link>
         </nav>
         <div className="hidden md:flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Input 
-              type="search" 
-              placeholder="Buscar..." 
-              className="w-64 border-orange-200 focus:border-orange-500 focus:ring-orange-500"
-            />
-            <Button size="icon" variant="ghost" className="text-orange-500 hover:bg-orange-50">
-              <Search className="h-5 w-5" />
-              <span className="sr-only">Buscar</span>
-            </Button>
-          </div>
+          <ClientSearchBar />
+          
           {!userId && (
             <>
               <Link href="/register" className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
