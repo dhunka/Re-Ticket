@@ -1,5 +1,3 @@
-// schema.prisma
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -10,36 +8,25 @@ generator client {
 }
 
 model Usuario {
-  id                  Int           @id @default(autoincrement())
-  clerkId             String?       @unique  // ID del usuario en Clerk
-  nombre              String
-  apellido            String
-  rut                 String        @unique
-  correo              String        @unique
-  password            String?
+  clerkId            String    @id @unique  // ID del usuario en Clerk, clave primaria
+  nombre             String
+  apellido           String
+  rut                String    @unique
+  correo             String    @unique
+  password           String?
   fecha_de_nacimiento DateTime?
-  rol                 String?       // 'comprador', 'vendedor', 'administrador'
-  
-  // Campos de Mercado Pago
-  mp_account_id       String?       // ID de cuenta de Mercado Pago
-  mp_access_token     String?       // Token de acceso de Mercado Pago
-  mp_refresh_token    String?       // Token de actualización de Mercado Pago
-  mp_token_expires    DateTime?     // Fecha de expiración del token
-  mp_connected        Boolean       @default(false) // Indica si la cuenta está conectada a MP
-  
-  metodo_pago        String?       // ID del método de pago en la pasarela de pagos
-  cuenta_vendedor    String?       // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
-  creado_en          DateTime      @default(now())
-  verificado         Boolean       @default(false)
-  foto_perfil        String?       // URL de la foto de perfil del usuario
-  
-  // Relaciones
-  ticketsVendidos    Ticket[]      @relation("Vendedor")
-  compras            Compra[]      @relation("Comprador")
-  valoraciones       Valoracion[]  @relation("VendedorValoracion")
-  disputas           Disputa[]     @relation("CompradorDisputa")
+  rol                String?   // 'comprador', 'vendedor', 'administrador'
+  metodo_pago        String?   // ID del método de pago en la pasarela de pagos
+  cuenta_vendedor    String?   // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
+  creado_en          DateTime  @default(now())
+  verificado         Boolean   @default(false) // Indica si el usuario ha verificado su identidad
+  foto_perfil        String?   // URL de la foto de perfil del usuario
+  ticketsVendidos    Ticket[]  @relation("Vendedor")
+  compras            Compra[]  @relation("Comprador")
+  valoraciones       Valoracion[] @relation("VendedorValoracion")
+  disputas           Disputa[]  @relation("CompradorDisputa")
   notificaciones     Notificacion[]
-  Valoracion         Valoracion[]
+  Valoracion         Valoracion[] // Puede ser redundante o tener otro propósito, dependiendo de su uso
 }
 
 model TipoEntrada {
@@ -51,7 +38,6 @@ model TipoEntrada {
   evento      Evento    @relation(fields: [evento_id], references: [id])
   tickets     Ticket[]  // Relación con los tickets
 }
-
 
 model Evento {
   id                Int       @id @default(autoincrement())
@@ -69,80 +55,70 @@ model Evento {
 model Ticket {
   id                Int       @id @default(autoincrement())
   evento_id         Int
-  vendedor_id       Int
+  vendedor_id       String    // Referencia a `clerkId` en Usuario
   tipo_entrada_id   Int  
   precio            Decimal
   estado            String    // 'disponible', 'vendido', 'cancelado'
   archivo_url       String?
   fecha_creacion    DateTime  @default(now())
   fecha_vencimiento DateTime
-  tipo_entrada      TipoEntrada @relation(fields: [tipo_entrada_id], references: [id]) // Nueva relación
+  tipo_entrada      TipoEntrada @relation(fields: [tipo_entrada_id], references: [id])
   evento            Evento     @relation(fields: [evento_id], references: [id])
-  vendedor          Usuario    @relation("Vendedor", fields: [vendedor_id], references: [id])
+  vendedor          Usuario    @relation("Vendedor", fields: [vendedor_id], references: [clerkId])
   compras           Compra[]
-  disputas          Disputa[]  @relation("TicketDisputa") // Campo de relación agregado
+  disputas          Disputa[]  @relation("TicketDisputa")
 }
 
 model Compra {
-  id                     Int       @id @default(autoincrement())
-  ticket_id              Int
-  comprador_id           Int
-  precio_total           Decimal
-  fecha_compra           DateTime  @default(now())
-  
-  // Campos específicos de Mercado Pago
-  mp_payment_id          String?   // ID del pago en Mercado Pago
-  mp_payment_status      String?   // Estado del pago en Mercado Pago
-  mp_merchant_order_id   String?   // ID de la orden en Mercado Pago
-  mp_preference_id       String?   // ID de la preferencia de pago
-  mp_external_reference  String?   // Referencia externa del pago
-  
-  estado                 String    // 'pending', 'approved', 'rejected', 'cancelled'
-  fondos_liberados       Boolean   @default(false)
+  id                   Int       @id @default(autoincrement())
+  ticket_id           Int
+  comprador_id        String    // Referencia a `clerkId` en Usuario
+  precio_total        Decimal
+  fecha_compra        DateTime  @default(now())
+  metodo_pago         String    // Referencia a ID del pago en la pasarela
+  estado              String    // 'pendiente', 'completado', 'disputa'
+  fondos_liberados    Boolean   @default(false) // Si los fondos han sido liberados al vendedor
   fecha_fondos_liberados DateTime?
-  confirmacion           Boolean   @default(false)
-  
-  // Relaciones
-  ticket                 Ticket    @relation(fields: [ticket_id], references: [id])
-  comprador              Usuario   @relation("Comprador", fields: [comprador_id], references: [id])
-  disputas               Disputa[]
-  paymentPreference      PaymentPreference[]
+  confirmacion        Boolean   @default(false) // Indica si el comprador ha confirmado el uso del ticket
+  ticket              Ticket     @relation(fields: [ticket_id], references: [id])
+  comprador           Usuario    @relation("Comprador", fields: [comprador_id], references: [clerkId])
+  disputas            Disputa[]
+
+  // Relación inversa para PaymentPreference
+  paymentPreferences  PaymentPreference[] // Añadido para relación inversa
 }
 
 model Disputa {
-  id              Int       @id @default(autoincrement())
-  compra_id       Int
-  comprador_id    Int
-  ticket_id       Int
-  descripcion     String?
-  estado          String    // 'abierta', 'resuelta'
-  fecha_creacion  DateTime  @default(now())
-  
-  // Relaciones
-  compra          Compra    @relation(fields: [compra_id], references: [id])
-  comprador       Usuario   @relation("CompradorDisputa", fields: [comprador_id], references: [id])
-  ticket          Ticket    @relation("TicketDisputa", fields: [ticket_id], references: [id])
+  id                Int       @id @default(autoincrement())
+  compra_id        Int
+  comprador_id     String    // Referencia a `clerkId` en Usuario
+  ticket_id        Int
+  descripcion      String?
+  estado           String    // 'abierta', 'resuelta'
+  fecha_creacion    DateTime  @default(now())
+  compra           Compra     @relation(fields: [compra_id], references: [id])
+  comprador        Usuario    @relation("CompradorDisputa", fields: [comprador_id], references: [clerkId])
+  ticket           Ticket     @relation("TicketDisputa", fields: [ticket_id], references: [id])
 }
+
 model Valoracion {
-  id              Int       @id @default(autoincrement())
-  vendedor_id     Int
-  comprador_id    Int
-  puntuacion      Int       // Puntuación del 1 al 5
-  comentario      String?
-  fecha_creacion  DateTime  @default(now())
-  
-  // Relaciones
-  vendedor        Usuario   @relation("VendedorValoracion", fields: [vendedor_id], references: [id])
-  comprador       Usuario   @relation(fields: [comprador_id], references: [id])
+  id                Int       @id @default(autoincrement())
+  vendedor_id      String    // Referencia a `clerkId` en Usuario
+  comprador_id     String    // Referencia a `clerkId` en Usuario
+  puntuacion       Int       // Puntuación del 1 al 5
+  comentario       String?
+  fecha_creacion    DateTime  @default(now())
+  vendedor         Usuario    @relation("VendedorValoracion", fields: [vendedor_id], references: [clerkId])
+  comprador        Usuario    @relation(fields: [comprador_id], references: [clerkId])
 }
-// Nuevo modelo para manejar webhooks de Mercado Pago
-model MercadoPagoWebhook {
-  id            Int       @id @default(autoincrement())
-  type          String    // Tipo de notificación
-  data          Json      // Datos del webhook
-  processed     Boolean   @default(false)
-  created_at    DateTime  @default(now())
-  processed_at  DateTime?
+
+model Notificacion {
+  id                Int       @id @default(autoincrement())
+  usuario_id       String    // Referencia a `clerkId` en Usuario
+  mensaje          String
+  leido            Boolean    @default(false) // Indica si la notificación ha sido leída
+  fecha_creacion    DateTime  @default(now())
+  usuario          Usuario    @relation(fields: [usuario_id], references: [clerkId])
 }
 
 model PaymentPreference {
@@ -152,16 +128,7 @@ model PaymentPreference {
   status            String   // 'pending', 'approved', 'rejected'
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
-  
-  // Relaciones
-  compra            Compra   @relation(fields: [compra_id], references: [id])
-}
 
-model Notificacion {
-  id                Int       @id @default(autoincrement())
-  usuario_id       Int
-  mensaje          String
-  leido            Boolean    @default(false) // Indica si la notificación ha sido leída
-  fecha_creacion    DateTime  @default(now())
-  usuario          Usuario    @relation(fields: [usuario_id], references: [id])
+  // Relación con Compra
+  compra            Compra   @relation(fields: [compra_id], references: [id])
 }
