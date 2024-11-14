@@ -1,12 +1,8 @@
-// src/app/api/buscarEvento/route.ts
-import { NextResponse } from 'next/server'; // Usa NextResponse para manejar respuestas
-
+import { NextResponse } from 'next/server'; 
 import db from '@/libs/db';
 
 export async function GET(req: Request) {
-  // Obtén la URL de la solicitud
   const url = new URL(req.url); 
-  // Obtén el parámetro de consulta 'query' usando URLSearchParams
   const query = url.searchParams.get('query'); 
 
   if (!query || typeof query !== 'string') {
