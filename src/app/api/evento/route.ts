@@ -9,6 +9,7 @@ interface TipoEntrada {
 }
 
 interface EventoRequest {
+  id: string;
   nombre: string;
   ubicacion: string;
   fecha_evento: string;
@@ -83,3 +84,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+

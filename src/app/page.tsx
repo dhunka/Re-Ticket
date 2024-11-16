@@ -12,7 +12,19 @@ interface Event {
   date: string;
   image: string;
 }
-
+async function handdleFetch(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+  event.preventDefault();
+  try {
+    const res = await fetch('http://localhost:3000/api/eventos');
+    if (!res.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await res.json();
+    console.log(data);
+  } catch (error) {
+    console.error('Fetch error:', error);
+  }
+}
 // Componente para el carrusel de eventos
 const EventCarousel: React.FC<{ events: Event[] }> = ({ events }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -23,6 +35,7 @@ const EventCarousel: React.FC<{ events: Event[] }> = ({ events }) => {
     }, 5000)
     return () => clearInterval(timer)
   }, [events.length])
+  
 
   return (
     <div className="relative w-full h-[400px] overflow-hidden rounded-lg">
@@ -65,8 +78,10 @@ const EventCarousel: React.FC<{ events: Event[] }> = ({ events }) => {
   )
 }
 
+
 // Componente para la lista de eventos
 const EventList: React.FC<{ title: string; events: Event[] }> = ({ title, events }) => (
+  
   <div className="mt-12">
     <h2 className="text-2xl font-bold mb-4">{title}</h2>
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -85,7 +100,7 @@ const EventList: React.FC<{ title: string; events: Event[] }> = ({ title, events
             <h3 className="font-semibold text-lg mb-1">{event.name}</h3>
             <p className="text-sm text-gray-600 mb-2">{event.date}</p>  
             <Link href={`/entrada/${event.id}`}>
-              <Button className='bg-orange-600'>Ver detalles</Button>
+              <Button onClick={handdleFetch} className='bg-orange-600'>Ver detalles</Button>
             </Link>
           </CardFooter>
         </Card>
@@ -95,6 +110,7 @@ const EventList: React.FC<{ title: string; events: Event[] }> = ({ title, events
 )
 
 export default function HomePage() {
+
   // Datos de ejemplo para los eventos
   const featuredEvents: Event[] = [
     { id: 1, name: "Concierto de Rock", date: "15 de Julio, 2023", image: "https://static.ptocdn.net/especiales/wal225_pixar-en-concierto/img/banner-desk-min.jpg" },
@@ -133,3 +149,4 @@ export default function HomePage() {
     </div>
   )
 }
+
