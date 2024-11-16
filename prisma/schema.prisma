@@ -16,22 +16,15 @@ model Usuario {
   apellido            String
   rut                 String        @unique
   correo              String        @unique
-  password            String?
-  fecha_de_nacimiento DateTime?
   rol                 String?       // 'comprador', 'vendedor', 'administrador'
-  
   // Campos de Mercado Pago
   mp_account_id       String?       // ID de cuenta de Mercado Pago
   mp_access_token     String?       // Token de acceso de Mercado Pago
   mp_refresh_token    String?       // Token de actualización de Mercado Pago
   mp_token_expires    DateTime?     // Fecha de expiración del token
-  mp_connected        Boolean       @default(false) // Indica si la cuenta está conectada a MP
-  
-  metodo_pago        String?       // ID del método de pago en la pasarela de pagos
-  cuenta_vendedor    String?       // ID de cuenta de vendedor en Stripe, Mercado Pago, etc.
+  mp_connected        Boolean       @default(false) // Indica si la cuenta está conectada a MP      
   creado_en          DateTime      @default(now())
   verificado         Boolean       @default(false)
-  foto_perfil        String?       // URL de la foto de perfil del usuario
   
   // Relaciones
   ticketsVendidos    Ticket[]      @relation("Vendedor")
@@ -44,9 +37,7 @@ model Usuario {
 
 model TipoEntrada {
   id          Int       @id @default(autoincrement())
-  nombre      String    // 'VIP', 'Palco', 'General', etc.
-  descripcion String?
-  precio_base Decimal   // Precio base sugerido para este tipo de entrada
+  nombre      String    // 'VIP', 'Palco', 'General', etc.  // Precio base sugerido para este tipo de entrada
   evento_id   Int
   evento      Evento    @relation(fields: [evento_id], references: [id])
   tickets     Ticket[]  // Relación con los tickets
@@ -64,6 +55,14 @@ model Evento {
   categoria         String
   tickets           Ticket[]
   tipos_entrada     TipoEntrada[]
+  fechas_evento     FechaEvento[]
+}
+
+model FechaEvento {
+  id          Int      @id @default(autoincrement())
+  evento_id   Int
+  fecha       DateTime
+  evento      Evento   @relation(fields: [evento_id], references: [id])
 }
 
 model Ticket {
@@ -75,7 +74,7 @@ model Ticket {
   estado            String    // 'disponible', 'vendido', 'cancelado'
   archivo_url       String?
   fecha_creacion    DateTime  @default(now())
-  fecha_vencimiento DateTime
+  fecha_ticket      DateTime
   tipo_entrada      TipoEntrada @relation(fields: [tipo_entrada_id], references: [id]) // Nueva relación
   evento            Evento     @relation(fields: [evento_id], references: [id])
   vendedor          Usuario    @relation("Vendedor", fields: [vendedor_id], references: [id])
