@@ -12,7 +12,7 @@ export async function GET(
 
         const evento = await db.evento.findUnique({
             where: {
-                id: (params.eventoId )
+                id: Number(params.eventoId )
             },
             include: {
                 tickets: true,
