@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-// src/components/MercadoPagoCheckout.tsx
-=======
->>>>>>> Stashed changes
 'use client';
 
 import { useState } from 'react';
@@ -54,7 +50,7 @@ export function MercadoPagoCheckout({ title, price, quantity, variant, vendedorI
     <Button 
       onClick={handleCheckout}
       disabled={loading}
-      className="w-full bg-yellow-400 hover:bg-[#c5a436] text-black"
+      className="w-full bg-gray-400 hover:bg-orange-600 text-black"
     >
       {loading ? (
         <>

@@ -1,55 +1,46 @@
-'use client';
-import { useState } from 'react';
+"use client";
+
+import * as React from "react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
+import { MercadoPagoCheckout } from "./checkOutMp";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MercadoPagoCheckout } from "@/components/ui/checkOutMp";
 
-interface TipoEntrada {
-    id: number;
-    nombre: string;
-    descripcion?: string | null;
-    precio_base: number;
-  }
-  
-  interface EntradasSelectorProps {
-    tiposEntrada: TipoEntrada[];  // Lista de tipos de entrada disponibles
-    eventoNombre: string;         // Nombre del evento
-    vendedorId: number;           // ID del vendedor (referencia al clerkId de Usuario)
-  }
+interface EntradasSelectorProps {
+  tiposEntrada: { id: number; nombre: string; precio: number }[];
+}
 
-const EntradasSelector: React.FC<EntradasSelectorProps> = ({
-  tiposEntrada,
-  eventoNombre,
-  vendedorId
-}) => {
-  const [selectedTipoNombre, setSelectedTipoNombre] = useState<string | null>(null);
-  const [filteredEntradas, setFilteredEntradas] = useState<TipoEntrada[]>([]);
-  const [selectedTicket, setSelectedTicket] = useState({
-    title: eventoNombre,
-    variant: "",
-    price: 0,
-    vendedorId: vendedorId,
-  });
+const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada }) => {
+  const [selectedTicket, setSelectedTicket] = React.useState<{ variant: string; price: number } | null>(null);
+  const [selectedTipoNombre, setSelectedTipoNombre] = React.useState<string | null>(null);
 
-  const handleTipoNombreChange = (value: string) => {
-    setSelectedTipoNombre(value);
-    const filtered = tiposEntrada.filter((t) => t.nombre === value);
-    setFilteredEntradas(filtered);
+  // Obtiene los nombres únicos de los tipos de entrada
+  const tiposNombresOptions = React.useMemo(() => {
+    return Array.from(new Set(tiposEntrada.map((entrada) => entrada.nombre)));
+
+  }, [tiposEntrada]);
+
+  const handleTipoNombreChange = (tipoNombre: string) => {
+    setSelectedTipoNombre(tipoNombre);
+    setSelectedTicket(null); // Resetea la selección del ticket
   };
 
-  const handleEntradaChange = (value: number) => {
-    const entrada = tiposEntrada.find((t) => t.id === value);
+  const handleEntradaChange = (id: number) => {
+    const entrada = tiposEntrada.find((t) => t.id === id);
     if (entrada) {
-      setSelectedTicket({
-        ...selectedTicket,
-        variant: entrada.nombre,
-        price: parseFloat(entrada.precio_base.toString()),
-      });
+      setSelectedTicket({ variant: entrada.nombre, price: entrada.precio });
     }
   };
 
+  // Filtra las entradas según el tipo de nombre seleccionado
+  const filteredEntradas = selectedTipoNombre
+    ? tiposEntrada.filter((entrada) => entrada.nombre === selectedTipoNombre)
+    : tiposEntrada;
+
   return (
-    <>
+    <div className="space-y-6">
+      {/* Select para seleccionar el nombre del tipo de entrada */}
       <Card className="border-0 bg-black/40 backdrop-blur">
         <CardHeader>
           <CardTitle className="text-xl text-white">Selecciona tipo de entrada</CardTitle>
@@ -60,7 +51,7 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({
               <SelectValue placeholder="Selecciona un tipo de entrada" />
             </SelectTrigger>
             <SelectContent>
-              {Array.from(new Set(tiposEntrada.map((tipo) => tipo.nombre))).map((nombre) => (
+              {tiposNombresOptions.map((nombre) => (
                 <SelectItem key={nombre} value={nombre}>
                   {nombre}
                 </SelectItem>
@@ -70,72 +61,60 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({
         </CardContent>
       </Card>
 
-      {selectedTipoNombre && (
-        <Card className="border-0 bg-black/40 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-xl text-white">Selecciona una entrada</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {filteredEntradas.map((entrada) => (
-                <li
-                  key={entrada.id}
-                  onClick={() => handleEntradaChange(entrada.id)}
-                  className="p-3 bg-gray-900 rounded-md hover:bg-black cursor-pointer text-white flex justify-between items-center"
-                >
-                  <span>{entrada.nombre}</span>
-                  <span>${parseFloat(entrada.precio_base.toString()).toLocaleString()}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
+      {/* Lista de entradas disponibles según el tipo seleccionado */}
+      <ul className="space-y-2">
+        {filteredEntradas.map((entrada) => (
+          <li
+            key={entrada.id}
+            onClick={() => handleEntradaChange(entrada.id)}
+            className="p-3 bg-gray-900 rounded-md hover:bg-black cursor-pointer text-white flex justify-between items-center"
+          >
+            <span>{entrada.nombre}</span>
+            <span>${entrada.precio.toLocaleString()}</span>
+          </li>
+        ))}
+      </ul>
 
-      {selectedTicket.variant && (
-        <>
-          <Card className="border-0 bg-black/40 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="text-xl text-white">Detalle de entrada seleccionada</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-black/60 border border-gray-800">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-white">{selectedTicket.variant}</h3>
-                      <p className="text-sm text-gray-400">
-                        {tiposEntrada.find((t) => t.nombre === selectedTicket.variant)?.descripcion || ""}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-white">
-                        ${selectedTicket.price.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 bg-black/40 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="text-xl text-white">Pago</CardTitle>
-            </CardHeader>
-            <CardContent>
+      {/* Card de checkout */}
+      <Card className="border-0 bg-black/40 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-xl text-white">Resumen de compra</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-200">Entrada seleccionada:</span>
+              <Badge variant="secondary">{selectedTicket?.variant}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-200">Precio:</span>
+              <span className="text-2xl font-bold text-white">
+                ${selectedTicket?.price.toLocaleString()}
+              </span>
+            </div>
+            {selectedTicket && (
               <MercadoPagoCheckout
-                title={selectedTicket.title}
+                title={selectedTicket.variant}
                 price={selectedTicket.price}
                 quantity={1}
                 variant={selectedTicket.variant}
-                vendedorId={selectedTicket.vendedorId}
+                vendedorId={1} // Asegúrate de ajustar el `vendedorId` según corresponda
               />
-            </CardContent>
-          </Card>
-        </>
-      )}
-    </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Información importante */}
+      <Card className="border-0">
+        <CardContent className="bg-gray-900 flex space-x-4">
+          <AlertCircle className="h-5 w-5 text-orange-500" />
+          <p className="text-sm text-orange-500">
+            Las ventas de entradas no son reembolsables y están sujetas a los términos y condiciones.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
