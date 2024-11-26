@@ -25,6 +25,8 @@ export async function GET(
             }
         });
 
+        console.log(evento)
+
         if (!evento) {
             return new NextResponse("Evento no encontrado", { status: 404 });
         }

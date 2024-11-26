@@ -13,6 +13,9 @@ model Usuario {
   password            String?
   rol                 String?
   metodo_pago         String?
+  mp_access_token     String?
+  mp_refresh_token    String?
+  mp_connected        Boolean        @default(false)
   cuenta_vendedor     String?
   creado_en           DateTime       @default(now())
   verificado          Boolean        @default(false)
