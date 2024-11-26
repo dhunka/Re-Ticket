@@ -4,50 +4,46 @@ import { MercadoPagoConfig, OAuth } from "mercadopago";
 import db from '@/libs/db';
 
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code");
+    const code = request.nextUrl.searchParams.get("code");
+    const state = request.nextUrl.searchParams.get("state"); // Recuperamos el userId del state
 
-  if (!code) {
-    return NextResponse.json(
-      { error: "Código no proporcionado" }, 
-      { status: 400 }
-    );
-  }
+    if (!code || !state) {
+        return NextResponse.json(
+            { error: "Código o usuario no proporcionado" },
+            { status: 400 }
+        );
+    }
 
-  const mercadopago = new MercadoPagoConfig({
-    accessToken: process.env.MP_ACCESS_TOKEN!,
-  });
-
-  try {
-    const credentials = await new OAuth(mercadopago).create({
-      body: {
-        client_id: process.env.NEXT_PUBLIC_MP_CLIENT_ID!,
-        client_secret: process.env.MP_CLIENT_SECRET!,
-        code,
-        redirect_uri: `${process.env.APP_URL}/api/mercadopago/connect`,
-      },
+    const mercadopago = new MercadoPagoConfig({
+        accessToken: process.env.MP_ACCESS_TOKEN!,
     });
 
-    // Guardar el token en tu base de datos
-    // Ejemplo con Prisma:
-    await db.usuario.update({
-      where: { id: 2 }, // Necesitarás identificar al usuario
-      data: { 
-        mp_access_token: credentials.access_token,
-        mp_refresh_token: credentials.refresh_token,
-        mp_connected: true,
-        // También podrías guardar:
-        // mpRefreshToken: credentials.refresh_token,
-        // mpTokenExpires: new Date(Date.now() + credentials.expires_in * 1000)
-      },
-    });
+    try {
+        const credentials = await new OAuth(mercadopago).create({
+            body: {
+                client_id: process.env.NEXT_PUBLIC_MP_CLIENT_ID!,
+                client_secret: process.env.MP_CLIENT_SECRET!,
+                code,
+                redirect_uri: `${process.env.APP_URL}/api/mercadopago/connect`,
+            },
+        });
 
-    // Redireccionar a tu dashboard o página principal
-    return NextResponse.redirect(`${process.env.APP_URL}/autorizacionMp/success`);
-  } catch (error) {
-    console.error('Error en connect:', error);
-    return NextResponse.json(
-      { error: "Error en la conexión" }, 
-      { status: 500 }
-    );
-  }
+        // Actualizamos el usuario usando el ID recibido
+        await db.usuario.update({
+            where: { clerkId: state }, // Usamos el userId recibido en el state
+            data: {
+                mp_access_token: credentials.access_token,
+                mp_refresh_token: credentials.refresh_token,
+                mp_connected: true,
+            },
+        });
+
+        return NextResponse.redirect(`${process.env.APP_URL}/autorizacionMp/success`);
+    } catch (error) {
+        console.error('Error en connect:', error);
+        return NextResponse.json(
+            { error: "Error en la conexión" },
+            { status: 500 }
+        );
+    }
 }

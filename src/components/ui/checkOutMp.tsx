@@ -3,21 +3,26 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-
+import { useUser } from "@clerk/nextjs";
 interface CheckoutProps {
   title: string;
   price: number;
   quantity: number;
   variant?: string;
-  vendedorId: number;
+  vendedorId: string;
 }
 
-export function MercadoPagoCheckout({ title, price, quantity, variant, vendedorId }: CheckoutProps) {
+export function MercadoPagoCheckout({ title, price, quantity, variant, vendedorId}: CheckoutProps) {
   const [loading, setLoading] = useState(false);
+  const { user } = useUser();
 
   const handleCheckout = async () => {
+    if (!user) {
+      return console.error('Usuario no autenticado porfavor inicie sesión');
+    }
     try {
       setLoading(true);
+      console.log(vendedorId)
       const response = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
         headers: {
@@ -27,7 +32,8 @@ export function MercadoPagoCheckout({ title, price, quantity, variant, vendedorI
           title: `${title} - ${variant}`,
           price,
           quantity,
-          vendedorId
+          vendedorId,
+          compradorId:user.id,
         }),
       });
 
