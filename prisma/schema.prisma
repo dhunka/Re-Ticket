@@ -10,7 +10,6 @@ datasource db {
 model Usuario {
   nombre              String
   correo              String         @unique
-  password            String?
   rol                 String?
   metodo_pago         String?
   mp_access_token     String?
@@ -18,11 +17,8 @@ model Usuario {
   mp_connected        Boolean        @default(false)
   cuenta_vendedor     String?
   creado_en           DateTime       @default(now())
-  verificado          Boolean        @default(false)
-  foto_perfil         String?
   rut                 String         @unique
   apellido            String
-  fecha_de_nacimiento DateTime?
   clerkId             String         @id @unique
   compras             Compra[]       @relation("Comprador")
   disputas            Disputa[]      @relation("CompradorDisputa")

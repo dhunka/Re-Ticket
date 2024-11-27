@@ -1,3 +1,4 @@
+'use client'
 import { useState, ChangeEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,7 @@ export default function FormularioEntrada() {
     fetchTiposEntrada();
   }, []);
 
-  // Obtener eventos de la base de datos
+  // conseguir los eventos de la db
   const fetchEventos = async () => {
     try {
       const response = await fetch("/api/eventos");
@@ -65,7 +66,7 @@ export default function FormularioEntrada() {
     }
   };
 
-  // Obtener tipos de entrada de la base de datos
+  // los tipos de entrada de la DB
   const fetchTiposEntrada = async () => {
     try {
       const response = await fetch("/api/tipos-entrada");

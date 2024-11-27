@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from 'lucide-react';
+import Link from 'next/link'; // Asegúrate de que esté importado Link
 
 interface Evento {
   id: number;
@@ -62,13 +63,14 @@ export default function ClientSearchBar() {
 
       {loading && <p className="text-gray-500">Cargando...</p>}
 
-      {/* Aquí aseguramos que la lista de resultados aparezca debajo del input */}
       {results.length > 0 && (
         <div className="absolute bg-white shadow-lg w-64 mt-2 rounded-md z-10 max-h-60 overflow-y-auto">
           <ul>
             {results.map((evento) => (
               <li key={evento.id} className="px-4 py-2 hover:bg-orange-100">
-                {evento.nombre}
+                <Link href={`/evento/${evento.id}`} passHref>
+                  {evento.nombre}
+                </Link>
               </li>
             ))}
           </ul>
