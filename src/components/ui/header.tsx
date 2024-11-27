@@ -21,7 +21,7 @@ export default async function Header() {
           <Link href="/sobre-nosotros" className="hover:text-orange-500 transition-colors">
             Preguntas Frecuentes
           </Link>
-          <Link href="/categoria" className="hover:text-orange-500 transition-colors">
+          <Link href="/eventos" className="hover:text-orange-500 transition-colors">
             Eventos
           </Link>
         </nav>

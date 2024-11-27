@@ -8,7 +8,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const {
           evento_id,
           tipo_entrada_id,
-          fecha_evento, // Nueva propiedad
+          fecha_evento, 
           precio,
           numeroAsiento,
           esPortador,

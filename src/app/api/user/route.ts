@@ -1,9 +1,8 @@
-// app/api/get-user.ts
 import { NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 
 export async function GET() {
-  // Get the userId from auth() -- if null, the user is not signed in
+  // obtener el userid desde el auth()  en caso de que sea null el usuario no puede inicar sesion
   const { userId } = await auth();
 
   if (!userId) {
