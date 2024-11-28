@@ -1,4 +1,3 @@
-// src/app/actions/get-evento.ts
 import db from "@/libs/db"; // Importa tu cliente de Prisma
 
 // Función para obtener los datos de un evento

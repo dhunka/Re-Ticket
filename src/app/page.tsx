@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from 'next/navigation' // Importa useRouter
+import { useAuth } from '@clerk/nextjs'
 
 interface Event {
   id: number;
@@ -30,9 +31,7 @@ const EventCarousel: React.FC<{ events: Event[] }> = ({ events }) => {
       {events.map((event, index) => (
         <div
           key={event.id}
-          className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ${
-            index === currentIndex ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
         >
           <Image
             src={event.url_foto}
@@ -107,6 +106,8 @@ const EventList: React.FC<{ title: string; events: Event[] }> = ({ title, events
 
 const HomePage = () => {
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([])
+  const { isLoaded, isSignedIn } = useAuth()  // Aquí estamos usando useAuth para verificar si el usuario está autenticado
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchEvents() {
@@ -121,6 +122,12 @@ const HomePage = () => {
 
     fetchEvents();
   }, []);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.refresh()  // Refrescamos la página cuando el usuario está autenticado
+    }
+  }, [isLoaded, isSignedIn, router])
 
   return (
     <div className="container mx-auto px-4 py-8">

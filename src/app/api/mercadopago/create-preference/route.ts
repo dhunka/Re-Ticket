@@ -8,17 +8,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { title, price, quantity, variant, vendedorId } = body;
 
+
     // Obtener el token del vendedor desde la base de datos
     const vendedor = await db.usuario.findUnique({
       where: {
-        id: vendedorId,
+        clerkId: vendedorId,
       },
-      select: {
-        mp_access_token: true, // El campo donde guardaste el token de acceso
-      },
+
     });
 
+
     if (!vendedor || !vendedor.mp_access_token) {
+      console.log("Vendedor no autorizado en Mercado Pago");
       return NextResponse.json(
         { error: "Vendedor no autorizado en Mercado Pago" },
         { status: 400 }

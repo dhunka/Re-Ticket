@@ -6,54 +6,82 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { MercadoPagoCheckout } from "./checkOutMp";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TipoEntrada, Ticket } from "@prisma/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 interface EntradasSelectorProps {
-  tiposEntrada: { id: number; nombre: string; precio: number }[];
+  tiposEntrada: TipoEntrada[];
+  tickets: Ticket[];
 }
 
-const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada }) => {
-  const [selectedTicket, setSelectedTicket] = React.useState<{ variant: string; price: number } | null>(null);
-  const [selectedTipoNombre, setSelectedTipoNombre] = React.useState<string | null>(null);
+const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada, tickets }) => {
+  const router = useRouter();
+  const { user } = useUser();
+  const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null);
+  const [selectedTipoEntradaId, setSelectedTipoEntradaId] = React.useState<number | null>(null);
+  const [showAuthDialog, setShowAuthDialog] = React.useState(false);
 
   // Obtiene los nombres únicos de los tipos de entrada
   const tiposNombresOptions = React.useMemo(() => {
-    return Array.from(new Set(tiposEntrada.map((entrada) => entrada.nombre)));
-
+    return tiposEntrada.map((entrada) => ({
+      id: entrada.id,
+      nombre: entrada.nombre,
+    }));
   }, [tiposEntrada]);
 
-  const handleTipoNombreChange = (tipoNombre: string) => {
-    setSelectedTipoNombre(tipoNombre);
-    setSelectedTicket(null); // Resetea la selección del ticket
+  const handleTipoEntradaChange = (tipoEntradaId: number) => {
+    setSelectedTipoEntradaId(tipoEntradaId);
+    setSelectedTicket(null);
   };
 
-  const handleEntradaChange = (id: number) => {
-    const entrada = tiposEntrada.find((t) => t.id === id);
-    if (entrada) {
-      setSelectedTicket({ variant: entrada.nombre, price: entrada.precio });
+  const handleEntradaChange = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+  };
+
+  const handleCheckoutClick = () => {
+    if (!user) {
+      setShowAuthDialog(true);
     }
   };
 
-  // Filtra las entradas según el tipo de nombre seleccionado
-  const filteredEntradas = selectedTipoNombre
-    ? tiposEntrada.filter((entrada) => entrada.nombre === selectedTipoNombre)
-    : tiposEntrada;
+  const handleLogin = () => {
+    router.push('/sign-in'); // Ruta de Clerk para sign-in
+  };
+
+  const handleRegister = () => {
+    router.push('/register'); // Ruta de Clerk para sign-up
+  };
+
+  // Filtra los tickets según el tipo de entrada seleccionado
+  const filteredTickets = selectedTipoEntradaId
+    ? tickets.filter((ticket) => ticket.tipo_entrada_id === selectedTipoEntradaId)
+    : tickets;
 
   return (
     <div className="space-y-6">
-      {/* Select para seleccionar el nombre del tipo de entrada */}
+      {/* Select para seleccionar el tipo de entrada */}
       <Card className="border-0 bg-black/40 backdrop-blur">
         <CardHeader>
           <CardTitle className="text-xl text-white">Selecciona tipo de entrada</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select onValueChange={handleTipoNombreChange}>
+          <Select onValueChange={(value) => handleTipoEntradaChange(Number(value))}>
             <SelectTrigger className="w-full text-white">
               <SelectValue placeholder="Selecciona un tipo de entrada" />
             </SelectTrigger>
             <SelectContent>
-              {tiposNombresOptions.map((nombre) => (
-                <SelectItem key={nombre} value={nombre}>
-                  {nombre}
+              {tiposNombresOptions.map((tipo) => (
+                <SelectItem key={tipo.id} value={tipo.id.toString()}>
+                  {tipo.nombre}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -61,18 +89,21 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada }) => 
         </CardContent>
       </Card>
 
-      {/* Lista de entradas disponibles según el tipo seleccionado */}
+      {/* Lista de tickets disponibles según el tipo seleccionado */}
       <ul className="space-y-2">
-        {filteredEntradas.map((entrada) => (
-          <li
-            key={entrada.id}
-            onClick={() => handleEntradaChange(entrada.id)}
-            className="p-3 bg-gray-900 rounded-md hover:bg-black cursor-pointer text-white flex justify-between items-center"
-          >
-            <span>{entrada.nombre}</span>
-            <span>${entrada.precio.toLocaleString()}</span>
-          </li>
-        ))}
+        {filteredTickets.map((ticket) => {
+          const tipoEntrada = tiposEntrada.find((tipo) => tipo.id === ticket.tipo_entrada_id);
+          return (
+            <li
+              key={ticket.id}
+              onClick={() => handleEntradaChange(ticket)}
+              className="p-3 bg-gray-900 rounded-md hover:bg-black cursor-pointer text-white flex justify-between items-center"
+            >
+              <span>{tipoEntrada ? tipoEntrada.nombre : "Tipo de entrada no encontrado"}</span>
+              <span>${ticket.precio.toLocaleString()}</span>
+            </li>
+          );
+        })}
       </ul>
 
       {/* Card de checkout */}
@@ -84,26 +115,56 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada }) => 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-200">Entrada seleccionada:</span>
-              <Badge variant="secondary">{selectedTicket?.variant}</Badge>
+              <Badge variant="secondary">
+                {selectedTicket && tiposEntrada.find(tipo => tipo.id === selectedTicket.tipo_entrada_id)?.nombre || "No seleccionada"}
+              </Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-200">Precio:</span>
               <span className="text-2xl font-bold text-white">
-                ${selectedTicket?.price.toLocaleString()}
+                ${selectedTicket?.precio.toLocaleString()}
               </span>
             </div>
             {selectedTicket && (
-              <MercadoPagoCheckout
-                title={selectedTicket.variant}
-                price={selectedTicket.price}
-                quantity={1}
-                variant={selectedTicket.variant}
-                vendedorId={1} // Asegúrate de ajustar el `vendedorId` según corresponda
-              />
+              <div onClick={handleCheckoutClick}>
+                {user ? (
+                  <MercadoPagoCheckout
+                    title={tiposEntrada.find(tipo => tipo.id === selectedTicket.tipo_entrada_id)?.nombre || "Entrada"}
+                    price={Number(selectedTicket.precio)}
+                    quantity={1}
+                    variant={tiposEntrada.find(tipo => tipo.id === selectedTicket.tipo_entrada_id)?.nombre || "Entrada"}
+                    vendedorId={selectedTicket.vendedor_id}
+                  />
+                ) : (
+                  <Button className="w-full" variant="default">
+                    Comprar Entrada
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Diálogo de autenticación */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Iniciar sesión requerido</DialogTitle>
+            <DialogDescription>
+              Para comprar entradas, necesitas iniciar sesión o registrarte en nuestra plataforma.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 mt-4">
+            <Button onClick={handleLogin} variant="default">
+              Iniciar Sesión
+            </Button>
+            <Button onClick={handleRegister} variant="outline">
+              Registrarse
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Información importante */}
       <Card className="border-0">

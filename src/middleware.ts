@@ -1,34 +1,44 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
+// Define las rutas públicas permitidas
 const isPublicRoute = createRouteMatcher([
   '/login(.*)', 
   '/register(.*)',
-  '/', 
+  '/',
   '/Compra',
   '/evento/(.*)',
   '/crearevento(.*)',
-  '/api/(.*)'  // Esto hará públicas todas las rutas API
-])
+  '/eventos',
+  '/estadoCompra',
+  '/dinamica',
+  '/components/ui/header',
+  // Añade solo las rutas de API públicas necesarias
+  '/api/buscarEvento',
+  '/api/obtenerUserid',
+  '/api(.*)',
+  'api/venta/[vendedorIdNumber]'
+
+]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)){
-    await auth.protect()
+
+  if (!isPublicRoute(request)) {
+    await auth.protect(); // Protege todas las rutas no listadas como públicas
   }
 });
 
-
 export const config = {
   matcher: [
-    // Rutas públicas (sin autenticación)
-    '/perfil',
     '/',
-    '/evento/(.*)',
-    '/categoria',
+    '/login(.*)',
+    '/register(.*)',
+    '/perfil',
+    '/eventos',
 
-    // Omite internals de Next.js y archivos estáticos
+    // Excluye internals de Next.js y archivos estáticos
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
 
-    // Siempre ejecutarse para rutas API
-    '/(api|trpc)(.*)',
+    // Asegura que todas las rutas de API pasen por el middleware
+    '/api/(.*)',
   ],
-}
+};

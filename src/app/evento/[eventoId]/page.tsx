@@ -4,15 +4,19 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import EntradasSelector from "@/components/ui/EntradaSelector";
+import { Ticket,TipoEntrada,} from "@prisma/client";
 
 interface Evento {
+  id: number; // Asegúrate de incluir el ID del evento
   nombre: string;
   descripcion: string;
   url_foto: string;
-  fecha_evento: string;
+  fecha_evento: string; // O Date, dependiendo de cómo lo manejes
   ubicacion: string;
-  tipos_entrada: { id: number; nombre: string; precio_base: number }[];
+  tickets: Ticket[]; // Asegúrate de que esto coincida con la estructura de tu API
+  tipos_entrada: TipoEntrada[]; // Asegúrate de que esto coincida con la estructura de tu API
 }
+
 
 interface EventPageProps {
   params: {
@@ -94,9 +98,11 @@ const EventPage: React.FC<EventPageProps> = ({ params }) => {
               tiposEntrada={evento.tipos_entrada.map((entrada) => ({
                 id: entrada.id,
                 nombre: entrada.nombre,
-                precio: entrada.precio_base,
-
+                precio_base: entrada.precio_base,
+                evento_id: entrada.evento_id,
+                descripcion: entrada.descripcion
               }))}
+               tickets={evento.tickets}
             />
           </div>
         </div>
