@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ enum TransactionState {
   OrderPlaced = 0,
   WaitingForRelease = 1,
   TicketsReleased = 2,
-  Completed = 3
+  Completed = 3,
 }
 
 interface ProcessState {
@@ -23,24 +22,24 @@ interface ProcessState {
 const processStates: ProcessState[] = [
   {
     state: TransactionState.OrderPlaced,
-    title: "Pedido de Compra",
-    description: "El comprador ha seleccionado y pagado por las entradas."
+    title: 'Pedido de Compra',
+    description: 'El comprador ha seleccionado y pagado por las entradas.',
   },
   {
     state: TransactionState.WaitingForRelease,
-    title: "Espera de Liberación",
-    description: "El vendedor tiene un plazo para liberar las entradas al comprador."
+    title: 'Espera de Liberación',
+    description: 'El vendedor tiene un plazo para liberar las entradas al comprador.',
   },
   {
     state: TransactionState.TicketsReleased,
-    title: "Entradas Liberadas",
-    description: "El vendedor ha liberado las entradas al comprador."
+    title: 'Entradas Liberadas',
+    description: 'La Entrada fue liberada.',
   },
   {
     state: TransactionState.Completed,
-    title: "Finalización",
-    description: "La transacción se ha completado satisfactoriamente."
-  }
+    title: 'Finalización',
+    description: 'La transacción se ha completado satisfactoriamente.',
+  },
 ];
 
 interface StatusStepProps {
@@ -60,6 +59,13 @@ const StatusStep: React.FC<StatusStepProps> = ({
   showTimer = false,
   timeLeft = 0,
 }) => {
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    return `${hours}h ${minutes}m ${remainingSeconds}s`;
+  };
+
   return (
     <div
       className={`flex items-start space-x-2 ${completed ? 'text-green-600' : active ? 'text-primary' : 'text-gray-500'}`}
@@ -70,7 +76,7 @@ const StatusStep: React.FC<StatusStepProps> = ({
         <p className="text-sm">{description}</p>
         {showTimer && (
           <p className="text-sm font-medium">
-            Tiempo restante: {Math.floor(timeLeft / 3600)}h {Math.floor((timeLeft % 3600) / 60)}m {timeLeft % 60}s
+            Tiempo restante: {formatTime(timeLeft)}
           </p>
         )}
       </div>
@@ -84,10 +90,10 @@ const InterfazVendedorPage: React.FC = () => {
   const ventaIdNumber = Number(ventaId);
 
   const [state, setState] = useState<TransactionState>(TransactionState.WaitingForRelease);
-  const [timeLeft, setTimeLeft] = useState<number>(10); // Tiempo inicial de 10 segundos
+  const [timeLeft, setTimeLeft] = useState<number>(10); // 24 horas por defecto
   const [ticketFile, setTicketFile] = useState<File | null>(null);
   const [ticketFilePreview, setTicketFilePreview] = useState<string | null>(null);
-  const [buyerData, setBuyerData] = useState<{ name: string; rut: string } | null>(null);
+  const [buyerData, setBuyerData] = useState<{ name: string; rut: string; fechaCompra: string } | null>(null);
 
   useEffect(() => {
     if (ventaIdNumber) {
@@ -97,42 +103,54 @@ const InterfazVendedorPage: React.FC = () => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-
+  
           const data = await response.json();
-          if (data.compra) {
+          console.log('Datos obtenidos:', data); // Mostrar todos los datos
+  
+          // Verifica si 'compra' existe y tiene datos relacionados con la expiración
+          if (data?.compra) {
+            console.log('Datos de compra:', data.compra); // Ver qué contiene 'compra'
+  
+            const fechaExpiracion = new Date(data.compra.fechaExpiracion);
+            const tiempoRestante = data.compra.tiempoRestante;
+  
+            // Si la fecha de expiración está disponible, ajusta la lógica del temporizador
             setBuyerData({
               name: data.compra.nombre || 'Nombre no disponible',
               rut: data.compra.rut || 'RUT no disponible',
+              fechaCompra: fechaExpiracion.toISOString(),
             });
-          } else {
-            console.warn("Estructura de datos inesperada:", data);
+  
+            setTimeLeft(Math.max(0, Math.floor(tiempoRestante / 1000))); // Convirtiendo el tiempo restante a segundos
           }
         } catch (error) {
-          console.error("Error al obtener datos:", error);
+          console.error('Error al obtener datos:', error);
         }
       };
-
+  
       fetchBuyerData();
     } else {
-      console.warn("ventaIdNumber no es válido");
+      console.warn('ventaIdNumber no es válido');
     }
   }, [ventaIdNumber]);
+  
+  
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime <= 1) {
-          if (state === TransactionState.WaitingForRelease) {
-            setState(TransactionState.TicketsReleased); // Cambiar a Entradas Liberadas cuando el tiempo se agote
+    if (state === TransactionState.WaitingForRelease && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            setState(TransactionState.TicketsReleased); // Cambia el estado aquí
+            clearInterval(timer);  // Detenemos el temporizador
+            return 0;
           }
-          return 0;
-        }
-        return prevTime - 1; // Continuar con el conteo hacia atrás
-      });
-    }, 1000);
-
-    return () => clearInterval(timer); // Limpiar el intervalo al desmontar el componente
-  }, [state]);
+          return prevTime - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer); // Limpiar el intervalo cuando el componente se desmonte
+    }
+  }, [state, timeLeft]); // Se ejecuta cuando el estado o el tiempo restante cambian
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -152,9 +170,10 @@ const InterfazVendedorPage: React.FC = () => {
   };
 
   const handleTicketRelease = () => {
-    if (ticketFile) {
-      setState(TransactionState.TicketsReleased);
+    if (!ticketFile) {
+      console.warn("No se ha subido ningún archivo, pero se procede con la liberación.");
     }
+    setState(TransactionState.Completed);
   };
 
   const calculateProgress = () => {
@@ -200,50 +219,54 @@ const InterfazVendedorPage: React.FC = () => {
               <div className="bg-white p-4 rounded-md border">
                 <div className="flex items-center space-x-2">
                   <div>
-                    <p>{buyerData.name}</p> {/* Nombre del comprador */}
-                    <p className="text-sm text-gray-500">{buyerData.rut}</p> {/* RUT del comprador */}
+                    <p>{buyerData.name}</p>
+                    <p className="text-sm text-gray-500">{buyerData.rut}</p>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white p-4 rounded-md border">
-                <h4 className="font-medium mb-2">Subir Entrada Transferida</h4>
+                <h4 className="font-medium mb-2">Subir Entrada Transferida (Opcional)</h4>
                 {!ticketFile ? (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                    <label className="flex flex-col items-center cursor-pointer">
-                      <Upload className="w-8 h-8 text-gray-400" />
-                      <span className="mt-2 text-sm text-gray-500">
-                        Subir archivo de entrada transferida
-                      </span>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        onChange={handleFileUpload}
-                      />
-                    </label>
+                  <div className="flex flex-col items-center justify-center py-4 space-y-2 border-dashed border-2 rounded-md">
+                    <Upload className="h-6 w-6 text-gray-400" />
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      accept=".pdf"
+                      className="mt-2"
+                    />
+                    <p className="text-sm text-gray-500">Cargar archivo PDF de la entrada.</p>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="w-5 h-5" />
-                      <span>{ticketFile.name}</span>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={removeFile}>
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-5 h-5" />
+                    <span>{ticketFile.name}</span>
+                    <Button variant="destructive" onClick={removeFile} size="icon">
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
                 )}
               </div>
             </div>
+
+            <div className="mt-6 flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => setState(TransactionState.Completed)}
+              >
+                Liberar Entrada
+              </Button>
+              <Button
+                variant="default"
+                onClick={handleTicketRelease}
+                disabled={state !== TransactionState.WaitingForRelease}
+              >
+                Confirmar Liberación
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      )}
-
-      {state === TransactionState.TicketsReleased && (
-        <Button className="mt-6" onClick={handleTicketRelease}>
-          Confirmar Liberación
-        </Button>
       )}
     </div>
   );

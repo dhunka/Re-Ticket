@@ -6,43 +6,51 @@ export async function GET(
   request: Request, 
   { params }: { params: { vendedorIdNumber: string } } 
 ) {
-  const vendedorId  = parseInt(params.vendedorIdNumber, 10);
+  const compraId = parseInt(params.vendedorIdNumber, 10);
 
-  console.log('Recibido vendedorId:', vendedorId );
-
-  if (isNaN(vendedorId)) {
-    console.warn('ID de vendedor no válido:', vendedorId);
-    return NextResponse.json({ error: true, message: 'ID de vendedor no válido' }, { status: 400 });
+  if (isNaN(compraId)) {
+    return NextResponse.json({ error: true, message: 'ID de compra no válido' }, { status: 400 });
   }
 
   try {
     const compra = await db.compra.findUnique({
-      where: { id: vendedorId },
+      where: { id: compraId },
       include: { 
         comprador: {
           select: { 
-            nombre: true, // Solo incluir el nombre
-            rut: true,    // Solo incluir el RUT
+            nombre: true,
+            rut: true,
           }
         }
       },
     });
 
     if (!compra) {
-      console.warn('Compra no encontrada:', vendedorId);
       return NextResponse.json({ error: true, message: 'Compra no encontrada' }, { status: 404 });
     }
 
-    const { nombre, rut } = compra.comprador;
+    // Lógica del temporizador
+    const fechaExpiracion = new Date(compra.fecha_compra);
+    fechaExpiracion.setDate(fechaExpiracion.getDate() + 1);
+
+    const ahora = new Date();
+    const expirado = ahora > fechaExpiracion;
+    const tiempoRestante = fechaExpiracion.getTime() - ahora.getTime();
 
     return NextResponse.json({ 
       compra: {
-        nombre,
-        rut
+        nombre: compra.comprador.nombre,
+        rut: compra.comprador.rut,
+        fechaExpiracion,
+        expirado,
+        tiempoRestante: Math.max(0, tiempoRestante)
       }
     });
   } catch (error) {
-    console.error('Error al obtener la compra:', error instanceof Error ? error.message : error);
-    return NextResponse.json({ error: true, message: 'Error al obtener la compra', details: error instanceof Error ? error.message : 'Desconocido' }, { status: 500 });
+    return NextResponse.json({ 
+      error: true, 
+      message: 'Error al obtener la compra', 
+      details: error instanceof Error ? error.message : 'Desconocido' 
+    }, { status: 500 });
   }
 }

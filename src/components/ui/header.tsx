@@ -1,12 +1,18 @@
+'use client'
+
+import { useAuth } from '@clerk/nextjs'  // Importamos useAuth para obtener el estado de autenticación en el cliente
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Menu } from 'lucide-react'
-import { auth } from '@clerk/nextjs/server'
 import { UserButton } from '@clerk/nextjs'
 import ClientSearchBar from './ClientSearchBar'  // Importamos el componente de búsqueda
 
-export default async function Header() {
-  const { userId } = await auth()
+export default function Header() {
+  const { isLoaded, isSignedIn } = useAuth()  // Usamos useAuth para obtener el estado de autenticación
+
+  if (!isLoaded) {
+    return null  // O mostrar un loader mientras se carga el estado de autenticación
+  }
 
   return (
     <header className="bg-white text-gray-800 shadow-sm">
@@ -28,7 +34,7 @@ export default async function Header() {
         <div className="hidden md:flex items-center space-x-4">
           <ClientSearchBar />
           
-          {!userId && (
+          {!isSignedIn && (
             <>
               <Link href="/register" className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
                 Registrarse
@@ -38,7 +44,7 @@ export default async function Header() {
               </Link>
             </>
           )}
-          {userId && (
+          {isSignedIn && (
             <>
               <Link href="/perfil" className="text-gray-700 hover:text-orange-500 transition-colors">
                 Perfil
@@ -48,7 +54,7 @@ export default async function Header() {
           )}
         </div>
         <div className="md:hidden flex items-center space-x-2">
-          {!userId ? (
+          {!isSignedIn ? (
             <Link href="/register" className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
               Registrarse
             </Link>

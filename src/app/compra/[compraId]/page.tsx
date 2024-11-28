@@ -1,10 +1,21 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { Progress } from "@/components/ui/progress"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { FileText, Clock, CheckCircle } from 'lucide-react'
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FileText, Clock, CheckCircle } from 'lucide-react';
+import axios from 'axios';
+
+interface Compra {
+  id: number;
+  estado: string;
+  comprador?: {
+    id: number;
+    nombre: string;
+  }
+}
 
 enum TransactionState {
   OrderPlaced = 0,
@@ -52,13 +63,13 @@ interface StatusStepProps {
   timeLeft?: number;
 }
 
-const StatusStep: React.FC<StatusStepProps> = ({ 
-  completed, 
+const StatusStep: React.FC<StatusStepProps> = ({
+  completed,
   active,
-  title, 
-  description, 
-  showTimer = false, 
-  timeLeft = 0 
+  title,
+  description,
+  showTimer = false,
+  timeLeft = 0,
 }) => {
   return (
     <div className={`flex items-start space-x-2 ${completed ? 'text-green-600' : active ? 'text-primary' : 'text-gray-500'}`}>
@@ -73,56 +84,100 @@ const StatusStep: React.FC<StatusStepProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 interface TicketFile {
   name: string;
   url: string;
 }
 
-const InterfazCompradorPage: React.FC = () => {
-  const [state, setState] = useState<TransactionState>(TransactionState.WaitingForRelease)
-  const [timeLeft, setTimeLeft] = useState<number>(5) // Tiempo ajustado a 5 segundos para demostración
-  const [uploadedTicket, setUploadedTicket] = useState<TicketFile | null>(null)
+export default function CompraPagina() {
+  const params = useParams();
+  const compraId = params.compraId as string;
+
+  const [compra, setCompra] = useState<Compra | null>(null);
+  const [state, setState] = useState<TransactionState>(TransactionState.WaitingForRelease);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(10); // Tiempo restante (en segundos)
+  const [uploadedTicket, setUploadedTicket] = useState<TicketFile | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime <= 1) {
-          // Cuando el tiempo llegue a 0, pasar automáticamente a Entradas Liberadas
-          if (state === TransactionState.WaitingForRelease) {
-            setState(TransactionState.TicketsReleased)
-          }
-          return 0;
-        }
-        return prevTime - 1;
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [state])
+    const fetchCompra = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/ticket/${compraId}`);
+        const fetchedCompra = response.data.compra;
+        setCompra(fetchedCompra);
+  
+        // Suponiendo que 'fecha_compra' es la fecha en la que el comprador hizo la compra
+        const fechaCompra = new Date(fetchedCompra.fecha_compra); // Obtén la fecha de compra de la respuesta
+        const fechaLimite = new Date(fechaCompra);
+        
+        // Agregar 1 día (24 horas) a la fecha de compra
+        fechaLimite.setHours(fechaLimite.getHours() + 24); 
+  
+        // Calcular la diferencia en milisegundos entre la fecha límite y la fecha actual
+        const tiempoRestante = Math.max(0, fechaLimite.getTime() - Date.now()); // Evita valores negativos
+        setTimeLeft(Math.floor(tiempoRestante / 1000)); // Guardamos el tiempo restante en segundos
+  
+        setState(TransactionState.WaitingForRelease); // Comenzamos en WaitingForRelease
+      } catch (err) {
+        setError('Error al cargar la compra');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    if (compraId) {
+      fetchCompra();
+    }
+  }, [compraId]);
+  
 
-  // Simulating ticket upload by seller
+  useEffect(() => {
+    if (state === TransactionState.WaitingForRelease && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            // Cambiar el estado a 'TicketsReleased' cuando el tiempo llegue a 0
+            setState(TransactionState.TicketsReleased);
+            clearInterval(timer); // Detener el temporizador
+            return 0;
+          }
+          return prevTime - 1; // Restar un segundo
+        });
+      }, 1000); // Ejecutar cada segundo
+  
+      return () => clearInterval(timer); // Limpiar el temporizador cuando el componente se desmonte o el estado cambie
+    }
+  }, [state, timeLeft]); // Este useEffect depende tanto del 'state' como de 'timeLeft'
+  
+
   useEffect(() => {
     if (state === TransactionState.TicketsReleased) {
       setUploadedTicket({
         name: 'ticket.pdf',
-        url: '/path/to/your/ticket/file.pdf'  // Actualiza con la URL de tu archivo real
-      })
+        url: `/api/ticket/${compraId}/download`
+      });
     }
-  }, [state])
+  }, [state, compraId]);
 
   const calculateProgress = () => {
     const totalStates = Object.keys(TransactionState).length / 2 - 1;
-    const currentProgress = state === TransactionState.Disputed 
-      ? (TransactionState.TicketsReleased / totalStates) * 100
-      : (state / totalStates) * 100;
-    return currentProgress;
-  }
+    return (state / totalStates) * 100;
+  };
 
   const handleAcceptedEntry = () => {
-    setState(TransactionState.Completed)
-  }
+    // Aquí cambiamos el estado local a "COMPLETADO"
+    setState(TransactionState.Completed);
+  };
+
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!compra) return <div>No se encontró la compra</div>;
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
@@ -130,10 +185,7 @@ const InterfazCompradorPage: React.FC = () => {
         <CardHeader>
           <CardTitle>Seguimiento de Compra de Entradas</CardTitle>
           <CardDescription>
-            {state === TransactionState.Disputed 
-              ? "Estado: Disputa en Proceso"
-              : `Estado actual: ${processStates.find(s => s.state === state)?.title}` 
-            }
+            Compra #: {compra.id} | Cliente: {compra.comprador?.nombre || 'N/A'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -147,11 +199,11 @@ const InterfazCompradorPage: React.FC = () => {
               .map((processState, index) => (
                 <StatusStep
                   key={index}
-                  completed={state > processState.state && state !== TransactionState.Disputed}
+                  completed={state > processState.state}
                   active={state === processState.state}
                   title={processState.title}
                   description={processState.description}
-                  showTimer={processState.state === TransactionState.WaitingForRelease && state === processState.state}
+                  showTimer={state === processState.state && processState.state === TransactionState.WaitingForRelease}
                   timeLeft={timeLeft}
                 />
               ))}
@@ -201,7 +253,5 @@ const InterfazCompradorPage: React.FC = () => {
         </Card>
       )}
     </div>
-  )
+  );
 }
-
-export default InterfazCompradorPage
