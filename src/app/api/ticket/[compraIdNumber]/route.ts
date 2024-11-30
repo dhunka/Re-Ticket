@@ -16,15 +16,28 @@ export async function GET(
   }
 
   try {
-    // Realiza la consulta a la base de datos asegurándote de que compraId es un número
     const compra = await db.compra.findUnique({
       where: { id: compraId },
-      include: { comprador: true },  // Aquí se incluye la relación con comprador
+      include: { 
+        comprador:  true,
+        ticket: {
+          select: {
+            archivo_url: true,
+            id: true,  
+          }
+        }
+      },
     });
+    
+    console.log('Consulta de la base de datos:', db.compra.findUnique.toString());
+    console.log('Compra completa:', JSON.stringify(compra, null, 2));
+    console.log('Ticket en la compra:', compra?.ticket);
+    console.log('URL del archivo de ticket:', compra?.ticket?.archivo_url);
+    console.log('la compra es: ', compraId)
 
     if (!compra) {
       console.warn('Compra no encontrada:', compraId);
-      return NextResponse.json({ error: true, message: 'Compra no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: true, message: `Compra no encontrada con ID ${compraId}` }, { status: 404 });
     }
 
     // Lógica del temporizador
@@ -38,6 +51,7 @@ export async function GET(
     return NextResponse.json({ 
       compra: {
         ...compra, // Incluye todos los detalles de la compra, incluido el comprador
+        ticket: compra.ticket,  // Asegúrate de que el ticket se incluya explícitamente
         fechaExpiracion,
         expirado,
         tiempoRestante: Math.max(0, tiempoRestante) // Asegura que el tiempo restante no sea negativo

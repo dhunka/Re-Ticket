@@ -19,7 +19,12 @@ export async function GET(
         comprador: {
           select: { 
             nombre: true,
-            rut: true,
+            rut: true,         
+          }
+        },
+        ticket: {
+          select: {
+            id: true,  // El id del ticket
           }
         }
       },
@@ -43,7 +48,8 @@ export async function GET(
         rut: compra.comprador.rut,
         fechaExpiracion,
         expirado,
-        tiempoRestante: Math.max(0, tiempoRestante)
+        tiempoRestante: Math.max(0, tiempoRestante),
+        ticketId: compra.ticket.id, // Ahora se incluye el ticketId correctamente
       }
     });
   } catch (error) {

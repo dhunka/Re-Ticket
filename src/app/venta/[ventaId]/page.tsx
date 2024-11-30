@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, X, Clock, CheckCircle } from 'lucide-react';
+import { Clock, CheckCircle } from 'lucide-react';
+import UploadForm from '@/components/ui/UploadForm'
 
 enum TransactionState {
   OrderPlaced = 0,
@@ -91,9 +91,7 @@ const InterfazVendedorPage: React.FC = () => {
 
   const [state, setState] = useState<TransactionState>(TransactionState.WaitingForRelease);
   const [timeLeft, setTimeLeft] = useState<number>(10); // 24 horas por defecto
-  const [ticketFile, setTicketFile] = useState<File | null>(null);
-  const [ticketFilePreview, setTicketFilePreview] = useState<string | null>(null);
-  const [buyerData, setBuyerData] = useState<{ name: string; rut: string; fechaCompra: string } | null>(null);
+  const [buyerData, setBuyerData] = useState<{ name: string; rut: string; fechaCompra: string; ticketId: number } | null>(null);
 
   useEffect(() => {
     if (ventaIdNumber) {
@@ -105,23 +103,22 @@ const InterfazVendedorPage: React.FC = () => {
           }
   
           const data = await response.json();
-          console.log('Datos obtenidos:', data); // Mostrar todos los datos
+          console.log('Datos obtenidos:', data);
   
-          // Verifica si 'compra' existe y tiene datos relacionados con la expiración
           if (data?.compra) {
-            console.log('Datos de compra:', data.compra); // Ver qué contiene 'compra'
+            console.log('Datos de compra:', data.compra);
   
             const fechaExpiracion = new Date(data.compra.fechaExpiracion);
             const tiempoRestante = data.compra.tiempoRestante;
   
-            // Si la fecha de expiración está disponible, ajusta la lógica del temporizador
             setBuyerData({
               name: data.compra.nombre || 'Nombre no disponible',
               rut: data.compra.rut || 'RUT no disponible',
               fechaCompra: fechaExpiracion.toISOString(),
+              ticketId: data.compra.ticketId,
             });
   
-            setTimeLeft(Math.max(0, Math.floor(tiempoRestante / 1000))); // Convirtiendo el tiempo restante a segundos
+            setTimeLeft(Math.max(0, Math.floor(tiempoRestante / 1000)));
           }
         } catch (error) {
           console.error('Error al obtener datos:', error);
@@ -133,52 +130,36 @@ const InterfazVendedorPage: React.FC = () => {
       console.warn('ventaIdNumber no es válido');
     }
   }, [ventaIdNumber]);
-  
-  
 
   useEffect(() => {
     if (state === TransactionState.WaitingForRelease && timeLeft > 0) {
       const timer = setInterval(() => {
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
-            setState(TransactionState.TicketsReleased); // Cambia el estado aquí
-            clearInterval(timer);  // Detenemos el temporizador
+            setState(TransactionState.TicketsReleased);
+            clearInterval(timer);
             return 0;
           }
           return prevTime - 1;
         });
       }, 1000);
-      return () => clearInterval(timer); // Limpiar el intervalo cuando el componente se desmonte
+      return () => clearInterval(timer);
     }
-  }, [state, timeLeft]); // Se ejecuta cuando el estado o el tiempo restante cambian
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setTicketFile(file);
-      const fileUrl = URL.createObjectURL(file);
-      setTicketFilePreview(fileUrl);
-    }
-  };
-
-  const removeFile = () => {
-    setTicketFile(null);
-    if (ticketFilePreview) {
-      URL.revokeObjectURL(ticketFilePreview);
-      setTicketFilePreview(null);
-    }
-  };
-
-  const handleTicketRelease = () => {
-    if (!ticketFile) {
-      console.warn("No se ha subido ningún archivo, pero se procede con la liberación.");
-    }
-    setState(TransactionState.Completed);
-  };
+  }, [state, timeLeft]);
 
   const calculateProgress = () => {
     const totalStates = Object.keys(TransactionState).length - 1;
     return (state / totalStates) * 100;
+  };
+
+  // Función para manejar la confirmación de la entrada
+  const handleConfirmarEntrada = () => {
+    setState(TransactionState.TicketsReleased); // Cambiar el estado a TicketsReleased
+    
+    // Simulación de transición a "Completed"
+    setTimeout(() => {
+      setState(TransactionState.Completed);
+    }, 2000);  // Cambiar después de 2 segundos
   };
 
   return (
@@ -212,62 +193,27 @@ const InterfazVendedorPage: React.FC = () => {
       </Card>
 
       {state === TransactionState.WaitingForRelease && buyerData && (
-        <Card className="mt-6">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Información del Comprador</h3>
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-md border">
-                <div className="flex items-center space-x-2">
-                  <div>
-                    <p>{buyerData.name}</p>
-                    <p className="text-sm text-gray-500">{buyerData.rut}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-4 rounded-md border">
-                <h4 className="font-medium mb-2">Subir Entrada Transferida (Opcional)</h4>
-                {!ticketFile ? (
-                  <div className="flex flex-col items-center justify-center py-4 space-y-2 border-dashed border-2 rounded-md">
-                    <Upload className="h-6 w-6 text-gray-400" />
-                    <input
-                      type="file"
-                      onChange={handleFileUpload}
-                      accept=".pdf"
-                      className="mt-2"
-                    />
-                    <p className="text-sm text-gray-500">Cargar archivo PDF de la entrada.</p>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-5 h-5" />
-                    <span>{ticketFile.name}</span>
-                    <Button variant="destructive" onClick={removeFile} size="icon">
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+  <Card className="mt-6">
+    <CardContent className="p-4">
+      <h3 className="font-semibold mb-4">Información del Comprador</h3>
+      <div className="space-y-4">
+        <div className="bg-white p-4 rounded-md border">
+          <div className="flex items-center space-x-2">
+            <div>
+              <p>{buyerData.name}</p>
+              <p className="text-sm text-gray-500">{buyerData.rut}</p>
             </div>
+          </div>
+        </div>
+        <UploadForm 
+          ticketId={buyerData.ticketId} 
+          onConfirmarEntrada={handleConfirmarEntrada}  // Asegúrate de pasar la función
+        />
+      </div>
+    </CardContent>
+  </Card>
+)}
 
-            <div className="mt-6 flex justify-between">
-              <Button
-                variant="outline"
-                onClick={() => setState(TransactionState.Completed)}
-              >
-                Liberar Entrada
-              </Button>
-              <Button
-                variant="default"
-                onClick={handleTicketRelease}
-                disabled={state !== TransactionState.WaitingForRelease}
-              >
-                Confirmar Liberación
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

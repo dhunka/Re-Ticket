@@ -16,7 +16,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/buscarEvento',
   '/api/obtenerUserid',
   '/api(.*)',
-  'api/venta/[vendedorIdNumber]'
+  'api/venta/[vendedorIdNumber]',
+  '/supabase'
 
 ]);
 

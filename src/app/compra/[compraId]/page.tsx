@@ -8,14 +8,22 @@ import { Button } from "@/components/ui/button";
 import { FileText, Clock, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 
+interface Ticket {
+  id: number;
+  archivo_url: string;
+}
+
 interface Compra {
   id: number;
   estado: string;
   comprador?: {
     id: number;
     nombre: string;
-  }
+  };
+  ticket?: Ticket;  // Asegúrate de que la propiedad ticket esté aquí
 }
+
+
 
 enum TransactionState {
   OrderPlaced = 0,
@@ -108,24 +116,19 @@ export default function CompraPagina() {
       try {
         setLoading(true);
         const response = await axios.get(`/api/ticket/${compraId}`);
+        console.log('Respuesta de la API:', response.data);
         const fetchedCompra = response.data.compra;
         setCompra(fetchedCompra);
-  
-        // Suponiendo que 'fecha_compra' es la fecha en la que el comprador hizo la compra
-        const fechaCompra = new Date(fetchedCompra.fecha_compra); // Obtén la fecha de compra de la respuesta
+        console.log('Compra cargada:', fetchedCompra);
+        const fechaCompra = new Date(fetchedCompra.fecha_compra);
         const fechaLimite = new Date(fechaCompra);
-        
-        // Agregar 1 día (24 horas) a la fecha de compra
-        fechaLimite.setHours(fechaLimite.getHours() + 24); 
-  
-        // Calcular la diferencia en milisegundos entre la fecha límite y la fecha actual
-        const tiempoRestante = Math.max(0, fechaLimite.getTime() - Date.now()); // Evita valores negativos
-        setTimeLeft(Math.floor(tiempoRestante / 1000)); // Guardamos el tiempo restante en segundos
-  
-        setState(TransactionState.WaitingForRelease); // Comenzamos en WaitingForRelease
+        fechaLimite.setHours(fechaLimite.getHours() + 24);
+        const tiempoRestante = Math.max(0, fechaLimite.getTime() - Date.now());
+        setTimeLeft(Math.floor(tiempoRestante / 1000));
+        setState(TransactionState.WaitingForRelease);
       } catch (err) {
         setError('Error al cargar la compra');
-        console.error(err);
+        console.error('Error al obtener compra:', err);
       } finally {
         setLoading(false);
       }
@@ -141,15 +144,15 @@ export default function CompraPagina() {
     if (state === TransactionState.WaitingForRelease && timeLeft > 0) {
       const timer = setInterval(() => {
         setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            // Cambiar el estado a 'TicketsReleased' cuando el tiempo llegue a 0
+          if (prevTime === 1) {  // Cuando llegue a 1 segundo
+            // Cambiar el estado a 'TicketsReleased' cuando el tiempo llegue a 1
             setState(TransactionState.TicketsReleased);
             clearInterval(timer); // Detener el temporizador
-            return 0;
+            return 0; // Poner el tiempo restante en 0
           }
           return prevTime - 1; // Restar un segundo
         });
-      }, 1000); // Ejecutar cada segundo
+      }, 1); // Ejecutar cada segundo
   
       return () => clearInterval(timer); // Limpiar el temporizador cuando el componente se desmonte o el estado cambie
     }
@@ -157,14 +160,15 @@ export default function CompraPagina() {
   
 
   useEffect(() => {
-    if (state === TransactionState.TicketsReleased) {
+    if (state === TransactionState.TicketsReleased && compra?.ticket) {
       setUploadedTicket({
         name: 'ticket.pdf',
-        url: `/api/ticket/${compraId}/download`
+        url: compra.ticket.archivo_url,
       });
     }
-  }, [state, compraId]);
-
+  }, [state, compra]); // Asegúrate de que solo dependa de state y compra
+  
+  
   const calculateProgress = () => {
     const totalStates = Object.keys(TransactionState).length / 2 - 1;
     return (state / totalStates) * 100;
@@ -210,39 +214,37 @@ export default function CompraPagina() {
           </div>
         </CardContent>
       </Card>
-
       {state === TransactionState.TicketsReleased && uploadedTicket && (
-        <Card className="mt-6">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Entradas Liberadas</h3>
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-md border">
-                <h4 className="font-medium mb-2">Entrada Transferida:</h4>
-                <div className="mt-2">
-                  <a
-                    href={uploadedTicket.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-blue-500 hover:text-blue-600"
-                  >
-                    <FileText className="w-5 h-5" />
-                    <span>Ver entrada</span>
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="default"
-                  onClick={handleAcceptedEntry}
-                >
-                  Entrada Aceptada
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+  <Card className="mt-6">
+    <CardContent className="p-4">
+      <h3 className="font-semibold mb-4">Entradas Liberadas</h3>
+      <div className="space-y-4">
+        <div className="bg-white p-4 rounded-md border">
+          <h4 className="font-medium mb-2">Entrada Transferida:</h4>
+          <div className="mt-2">
+            <a         
+              href={uploadedTicket.url} // URL del archivo PDF
+              target="_blank"  // Abre en una nueva pestaña
+              rel="noopener noreferrer"  // Seguridad adicional
+              className="flex items-center space-x-2 text-blue-500 hover:text-blue-600 cursor-pointer"
+            >
+              <FileText className="w-5 h-5" />
+              <span>Ver entrada</span>
+            </a>
+          </div>
+        </div>
+        <div className="flex justify-end space-x-2">
+          <Button
+            variant="default"
+            onClick={handleAcceptedEntry}
+          >
+            Entrada Aceptada
+          </Button>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
 
       {state === TransactionState.Completed && (
         <Card className="mt-6">
