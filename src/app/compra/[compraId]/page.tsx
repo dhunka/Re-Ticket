@@ -53,13 +53,9 @@ const processStates: ProcessState[] = [
   {
     state: TransactionState.TicketsReleased,
     title: "Entradas Liberadas",
-    description: "El vendedor ha liberado las entradas."
+    description: "El vendedor ha liberado las entradas, Disfrute su entrada."
   },
-  {
-    state: TransactionState.Completed,
-    title: "Finalización",
-    description: "La transacción se ha completado satisfactoriamente."
-  }
+
 ];
 
 interface StatusStepProps {
@@ -80,7 +76,7 @@ const StatusStep: React.FC<StatusStepProps> = ({
   timeLeft = 0,
 }) => {
   return (
-    <div className={`flex items-start space-x-2 ${completed ? 'text-green-600' : active ? 'text-primary' : 'text-gray-500'}`}>
+    <div className={`flex items-start space-x-2 ${completed ? 'text-orange-600' : active ? 'text-primary' : 'text-gray-500'}`}>
       {completed ? <CheckCircle className="w-5 h-5 mt-0.5" /> : <Clock className="w-5 h-5 mt-0.5" />}
       <div>
         <h3 className="font-semibold">{title}</h3>
@@ -249,7 +245,7 @@ export default function CompraPagina() {
       {state === TransactionState.Completed && (
         <Card className="mt-6">
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-4 text-green-700">Finalización</h3>
+            <h3 className="font-semibold mb-4 text-orange-600">Finalización</h3>
             <p>La compra ha sido completada satisfactoriamente. ¡Disfruta de tu evento!</p>
           </CardContent>
         </Card>

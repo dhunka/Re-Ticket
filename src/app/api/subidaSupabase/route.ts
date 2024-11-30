@@ -4,50 +4,95 @@ import db from '@/libs/db'; // Asegúrate de tener configurado Prisma correctame
 
 export async function POST(request: Request) {
   try {
-    // Obtener el archivo desde el formulario
+    // Obtener el archivo y el video desde el formulario
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const video = formData.get('video') as File;  // Asumiendo que el video también es parte del formulario
     const ticketId = formData.get('ticketId') as string; // Obtenemos el ticketId del formulario
 
     if (!file || !ticketId) {
       return NextResponse.json({ error: 'No se ha seleccionado un archivo o ticketId' }, { status: 400 });
     }
 
-    // Subir el archivo a Supabase Storage
+    // Subir el archivo PDF al bucket 'archivos'
     const fileName = `${Date.now()}-${file.name}`;
-    const { error: uploadError } = await supabase
+    const uploadFileResponse = await supabase
       .storage
       .from('archivos')  // Asegúrate de que este sea el nombre correcto del bucket
       .upload(fileName, file);
 
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    // Verificar si hubo un error al subir el archivo
+    if (uploadFileResponse.error) {
+      return NextResponse.json({ error: uploadFileResponse.error.message }, { status: 401 });
     }
 
-    // Obtener la URL pública del archivo
-    const { data: urlData, error: urlError } = supabase
+    // Obtener la URL pública del archivo PDF
+    const { data: urlData } = supabase
       .storage
       .from('archivos')  // Asegúrate de que este sea el nombre correcto del bucket
       .getPublicUrl(fileName);
 
-    // Si `urlData` está vacío o no contiene `publicUrl`, manejar el error
-    if (urlError || !urlData?.publicUrl) {
-      return NextResponse.json({ error: 'No se pudo obtener la URL pública del archivo' }, { status: 500 });
+    // Verificar si la URL pública fue obtenida correctamente
+    if (!urlData?.publicUrl) {
+      return NextResponse.json({ error: 'No se pudo obtener la URL pública del archivo' }, { status: 402 });
     }
 
-    // Acceder a la URL pública
-    const fileUrl = urlData.publicUrl;
+    // Subir el video al mismo bucket 'archivos' si se ha cargado uno
+    let videoUrl = '';
+    if (video) {
+      const videoName = `${Date.now()}-${video.name}`;
+      const uploadVideoResponse = await supabase
+        .storage
+        .from('archivos')  // Usamos el mismo bucket para el video
+        .upload(videoName, video);
 
-    // Actualizar el ticket en la base de datos con la URL del archivo
-    await db.ticket.update({
-      where: { id: parseInt(ticketId) },  // Convertimos ticketId a número
-      data: { archivo_url: fileUrl },  // Guardamos la URL en el campo archivo_url
+      // Verificar si hubo un error al subir el video
+      if (uploadVideoResponse.error) {
+        return NextResponse.json({ error: uploadVideoResponse.error.message }, { status: 500 });
+      }
+
+      const { data: videoUrlData } = supabase
+        .storage
+        .from('archivos')  // También obtenemos la URL pública del mismo bucket
+        .getPublicUrl(videoName);
+
+      // Verificar si la URL pública del video fue obtenida correctamente
+      if (!videoUrlData?.publicUrl) {
+        return NextResponse.json({ error: 'No se pudo obtener la URL pública del video' }, { status: 501 });
+      }
+
+      videoUrl = videoUrlData.publicUrl;
+    }
+
+    // Buscar la compra por 'ticket_id'
+    const compra = await db.compra.findFirst({
+      where: { ticket_id: parseInt(ticketId) },  // Usamos ticket_id para encontrar la compra
     });
 
-    return NextResponse.json({ message: 'Archivo subido exitosamente y URL guardada', fileUrl });
+    if (!compra) {
+      return NextResponse.json({ error: 'Compra no encontrada' }, { status: 404 });
+    }
+
+    // Actualizar la URL del archivo en el ticket
+    await db.ticket.update({
+      where: { id: parseInt(ticketId) },  // Usamos 'id' para el ticket
+      data: {
+        archivo_url: urlData.publicUrl,  // Guardamos la URL del archivo PDF
+      },
+    });
+
+    // Actualizar la URL del video en la compra
+    await db.compra.update({
+      where: { id: compra.id },  // Usamos el 'id' de la compra para actualizar
+      data: {
+        video_vendedor: videoUrl,  // Guardamos la URL del video (si se cargó uno)
+      },
+    });
+
+    return NextResponse.json({ message: 'Archivo y video subidos exitosamente', fileUrl: urlData.publicUrl, videoUrl });
 
   } catch (error) {
-    console.error('Error al subir archivo:', error);
-    return NextResponse.json({ error: 'Error interno en el servidor' }, { status: 500 });
+    console.error('Error al subir archivo y video:', error);
+    return NextResponse.json({ error: 'Error interno en el servidor' }, { status: 600 });
   }
 }

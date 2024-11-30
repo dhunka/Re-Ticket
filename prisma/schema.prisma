@@ -75,6 +75,7 @@ model Compra {
   precio_total           Decimal
   fecha_compra           DateTime            @default(now())
   metodo_pago            String
+  video_vendedor         String
   estado                 String
   fondos_liberados       Boolean             @default(false)
   fecha_fondos_liberados DateTime?

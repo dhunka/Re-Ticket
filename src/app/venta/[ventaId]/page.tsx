@@ -4,13 +4,14 @@ import { useParams } from 'next/navigation';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, CheckCircle } from 'lucide-react';
-import UploadForm from '@/components/ui/UploadForm'
+import UploadForm from '@/components/ui/UploadForm';
 
 enum TransactionState {
   OrderPlaced = 0,
   WaitingForRelease = 1,
   TicketsReleased = 2,
-  Completed = 3,
+  Disputed = 3,
+  Completed = 4
 }
 
 interface ProcessState {
@@ -28,17 +29,12 @@ const processStates: ProcessState[] = [
   {
     state: TransactionState.WaitingForRelease,
     title: 'Espera de Liberación',
-    description: 'El vendedor tiene un plazo para liberar las entradas al comprador.',
+    description: 'Tiene un plazo para liberar las entradas al comprador.',
   },
   {
     state: TransactionState.TicketsReleased,
     title: 'Entradas Liberadas',
-    description: 'La Entrada fue liberada.',
-  },
-  {
-    state: TransactionState.Completed,
-    title: 'Finalización',
-    description: 'La transacción se ha completado satisfactoriamente.',
+    description: 'La Entrada fue liberada, puede salir.',
   },
 ];
 
@@ -68,7 +64,7 @@ const StatusStep: React.FC<StatusStepProps> = ({
 
   return (
     <div
-      className={`flex items-start space-x-2 ${completed ? 'text-green-600' : active ? 'text-primary' : 'text-gray-500'}`}
+      className={`flex items-start space-x-2 ${completed ? 'text-orange-500' : active ? 'text-primary' : 'text-gray-500'}`}
     >
       {completed ? <CheckCircle className="w-5 h-5 mt-0.5" /> : <Clock className="w-5 h-5 mt-0.5" />}
       <div>
@@ -92,6 +88,7 @@ const InterfazVendedorPage: React.FC = () => {
   const [state, setState] = useState<TransactionState>(TransactionState.WaitingForRelease);
   const [timeLeft, setTimeLeft] = useState<number>(10); // 24 horas por defecto
   const [buyerData, setBuyerData] = useState<{ name: string; rut: string; fechaCompra: string; ticketId: number } | null>(null);
+  const [isTimerActive, setIsTimerActive] = useState(true); // Estado para controlar el temporizador
 
   useEffect(() => {
     if (ventaIdNumber) {
@@ -101,30 +98,30 @@ const InterfazVendedorPage: React.FC = () => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-  
+
           const data = await response.json();
           console.log('Datos obtenidos:', data);
-  
+
           if (data?.compra) {
             console.log('Datos de compra:', data.compra);
-  
+
             const fechaExpiracion = new Date(data.compra.fechaExpiracion);
             const tiempoRestante = data.compra.tiempoRestante;
-  
+
             setBuyerData({
               name: data.compra.nombre || 'Nombre no disponible',
               rut: data.compra.rut || 'RUT no disponible',
               fechaCompra: fechaExpiracion.toISOString(),
               ticketId: data.compra.ticketId,
             });
-  
+
             setTimeLeft(Math.max(0, Math.floor(tiempoRestante / 1000)));
           }
         } catch (error) {
           console.error('Error al obtener datos:', error);
         }
       };
-  
+
       fetchBuyerData();
     } else {
       console.warn('ventaIdNumber no es válido');
@@ -132,11 +129,11 @@ const InterfazVendedorPage: React.FC = () => {
   }, [ventaIdNumber]);
 
   useEffect(() => {
-    if (state === TransactionState.WaitingForRelease && timeLeft > 0) {
+    if (state === TransactionState.WaitingForRelease && timeLeft > 0 && isTimerActive) {
       const timer = setInterval(() => {
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
-            setState(TransactionState.TicketsReleased);
+            setState(TransactionState.TicketsReleased); // Cambiar el estado cuando el temporizador termine
             clearInterval(timer);
             return 0;
           }
@@ -145,21 +142,23 @@ const InterfazVendedorPage: React.FC = () => {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [state, timeLeft]);
+  }, [state, timeLeft, isTimerActive]); // Dependemos también de isTimerActive
 
   const calculateProgress = () => {
-    const totalStates = Object.keys(TransactionState).length - 1;
+    // Ahora calculamos el progreso basado en el número de estados posibles
+    const totalStates = 2; // Ahora hay solo 3 estados, por lo que totalStates es 2 (maximo)
     return (state / totalStates) * 100;
+  };
+
+  // Función para detener el temporizador, que se pasará a UploadForm
+  const detenerTemporizador = () => {
+    setIsTimerActive(false); // Detenemos el temporizador
   };
 
   // Función para manejar la confirmación de la entrada
   const handleConfirmarEntrada = () => {
     setState(TransactionState.TicketsReleased); // Cambiar el estado a TicketsReleased
-    
-    // Simulación de transición a "Completed"
-    setTimeout(() => {
-      setState(TransactionState.Completed);
-    }, 2000);  // Cambiar después de 2 segundos
+    // No es necesario más porque ya no hay estado "Completed"
   };
 
   return (
@@ -193,28 +192,39 @@ const InterfazVendedorPage: React.FC = () => {
       </Card>
 
       {state === TransactionState.WaitingForRelease && buyerData && (
-  <Card className="mt-6">
-    <CardContent className="p-4">
-      <h3 className="font-semibold mb-4">Información del Comprador</h3>
-      <div className="space-y-4">
-        <div className="bg-white p-4 rounded-md border">
-          <div className="flex items-center space-x-2">
-            <div>
-              <p>{buyerData.name}</p>
-              <p className="text-sm text-gray-500">{buyerData.rut}</p>
+        <Card className="mt-6">
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4">Información del Comprador</h3>
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded-md border">
+                <div className="flex items-center space-x-2">
+                  <div>
+                    <p>{buyerData.name}</p>
+                    <p className="text-sm text-gray-500">{buyerData.rut}</p>
+                  </div>
+                </div>
+              </div>
+              <UploadForm 
+                ticketId={buyerData.ticketId} 
+                onConfirmarEntrada={handleConfirmarEntrada}  
+                detenerTemporizador={detenerTemporizador} 
+              />
             </div>
-          </div>
-        </div>
-        <UploadForm 
-          ticketId={buyerData.ticketId} 
-          onConfirmarEntrada={handleConfirmarEntrada}  // Asegúrate de pasar la función
-        />
-      </div>
-    </CardContent>
-  </Card>
-)}
+          </CardContent>
+        </Card>
+      )}
 
+        {state === TransactionState.Completed && (
+        <Card className="mt-6">
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4 text-orange-600">Finalización</h3>
+            <p>La compra ha sido completada satisfactoriamente. ¡Disfruta de tu evento!</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
+
+
   );
 };
 

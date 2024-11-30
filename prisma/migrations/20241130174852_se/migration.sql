@@ -2,7 +2,6 @@
 CREATE TABLE "Usuario" (
     "nombre" TEXT NOT NULL,
     "correo" TEXT NOT NULL,
-    "password" TEXT,
     "rol" TEXT,
     "metodo_pago" TEXT,
     "mp_access_token" TEXT,
@@ -10,11 +9,8 @@ CREATE TABLE "Usuario" (
     "mp_connected" BOOLEAN NOT NULL DEFAULT false,
     "cuenta_vendedor" TEXT,
     "creado_en" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "verificado" BOOLEAN NOT NULL DEFAULT false,
-    "foto_perfil" TEXT,
     "rut" TEXT NOT NULL,
     "apellido" TEXT NOT NULL,
-    "fecha_de_nacimiento" TIMESTAMP(3),
     "clerkId" TEXT NOT NULL,
 
     CONSTRAINT "Usuario_pkey" PRIMARY KEY ("clerkId")
@@ -68,6 +64,7 @@ CREATE TABLE "Compra" (
     "precio_total" DECIMAL(65,30) NOT NULL,
     "fecha_compra" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "metodo_pago" TEXT NOT NULL,
+    "video_vendedor" TEXT NOT NULL,
     "estado" TEXT NOT NULL,
     "fondos_liberados" BOOLEAN NOT NULL DEFAULT false,
     "fecha_fondos_liberados" TIMESTAMP(3),
