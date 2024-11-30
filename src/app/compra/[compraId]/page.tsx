@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Clock, CheckCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Star, StarHalf } from 'lucide-react'; // Iconos de lucide-react
 import axios from 'axios';
 
 interface Ticket {
@@ -20,10 +20,8 @@ interface Compra {
     id: number;
     nombre: string;
   };
-  ticket?: Ticket;  // Asegúrate de que la propiedad ticket esté aquí
+  ticket?: Ticket;
 }
-
-
 
 enum TransactionState {
   OrderPlaced = 0,
@@ -55,7 +53,6 @@ const processStates: ProcessState[] = [
     title: "Entradas Liberadas",
     description: "El vendedor ha liberado las entradas, Disfrute su entrada."
   },
-
 ];
 
 interface StatusStepProps {
@@ -106,16 +103,16 @@ export default function CompraPagina() {
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(10); // Tiempo restante (en segundos)
   const [uploadedTicket, setUploadedTicket] = useState<TicketFile | null>(null);
+  const [rating, setRating] = useState<number>(0); // Para la valoración
+  const [review, setReview] = useState<string>(''); // Para la reseña
 
   useEffect(() => {
     const fetchCompra = async () => {
       try {
         setLoading(true);
         const response = await axios.get(`/api/ticket/${compraId}`);
-        console.log('Respuesta de la API:', response.data);
         const fetchedCompra = response.data.compra;
         setCompra(fetchedCompra);
-        console.log('Compra cargada:', fetchedCompra);
         const fechaCompra = new Date(fetchedCompra.fecha_compra);
         const fechaLimite = new Date(fechaCompra);
         fechaLimite.setHours(fechaLimite.getHours() + 24);
@@ -124,7 +121,6 @@ export default function CompraPagina() {
         setState(TransactionState.WaitingForRelease);
       } catch (err) {
         setError('Error al cargar la compra');
-        console.error('Error al obtener compra:', err);
       } finally {
         setLoading(false);
       }
@@ -134,26 +130,23 @@ export default function CompraPagina() {
       fetchCompra();
     }
   }, [compraId]);
-  
 
   useEffect(() => {
     if (state === TransactionState.WaitingForRelease && timeLeft > 0) {
       const timer = setInterval(() => {
         setTimeLeft((prevTime) => {
-          if (prevTime === 1) {  // Cuando llegue a 1 segundo
-            // Cambiar el estado a 'TicketsReleased' cuando el tiempo llegue a 1
+          if (prevTime === 1) {
             setState(TransactionState.TicketsReleased);
-            clearInterval(timer); // Detener el temporizador
-            return 0; // Poner el tiempo restante en 0
+            clearInterval(timer);
+            return 0;
           }
-          return prevTime - 1; // Restar un segundo
+          return prevTime - 1;
         });
-      }, 1); // Ejecutar cada segundo
+      }, 1);
   
-      return () => clearInterval(timer); // Limpiar el temporizador cuando el componente se desmonte o el estado cambie
+      return () => clearInterval(timer);
     }
-  }, [state, timeLeft]); // Este useEffect depende tanto del 'state' como de 'timeLeft'
-  
+  }, [state, timeLeft]);
 
   useEffect(() => {
     if (state === TransactionState.TicketsReleased && compra?.ticket) {
@@ -162,17 +155,48 @@ export default function CompraPagina() {
         url: compra.ticket.archivo_url,
       });
     }
-  }, [state, compra]); // Asegúrate de que solo dependa de state y compra
-  
-  
+  }, [state, compra]);
+
   const calculateProgress = () => {
     const totalStates = Object.keys(TransactionState).length / 2 - 1;
     return (state / totalStates) * 100;
   };
 
   const handleAcceptedEntry = () => {
-    // Aquí cambiamos el estado local a "COMPLETADO"
     setState(TransactionState.Completed);
+  };
+
+  const handleStarClick = (index: number) => {
+    setRating(index + 1); // Setea la valoración basada en el índice
+  };
+
+  const handleSubmitReview = async () => {
+    try {
+      if (rating < 1 || rating > 5) {
+        alert('La valoración debe estar entre 1 y 5.');
+        return;
+      }
+      if (!review.trim()) {
+        alert('Por favor, escribe un comentario.');
+        return;
+      }
+
+      const response = await axios.post(`/api/ticket/${compraId}`, {
+        puntuacion: rating,
+        comentario: review,
+      });
+
+      if (response.data && response.data.message) {
+        alert('¡Valoración enviada correctamente!');
+        setRating(0);
+        setReview('');
+      } else {
+        alert('Hubo un error al registrar la valoración.');
+      }
+    } catch (error) {
+      console.error('Error al enviar la valoración:', error);
+      alert('Hubo un error al enviar la valoración.');
+    }
   };
 
   if (loading) return <div>Cargando...</div>;
@@ -210,43 +234,70 @@ export default function CompraPagina() {
           </div>
         </CardContent>
       </Card>
+
       {state === TransactionState.TicketsReleased && uploadedTicket && (
-  <Card className="mt-6">
-    <CardContent className="p-4">
-      <h3 className="font-semibold mb-4">Entradas Liberadas</h3>
-      <div className="space-y-4">
-        <div className="bg-white p-4 rounded-md border">
-          <h4 className="font-medium mb-2">Entrada Transferida:</h4>
-          <div className="mt-2">
-            <a         
-              href={uploadedTicket.url} // URL del archivo PDF
-              target="_blank"  // Abre en una nueva pestaña
-              rel="noopener noreferrer"  // Seguridad adicional
-              className="flex items-center space-x-2 text-blue-500 hover:text-blue-600 cursor-pointer"
-            >
-              <FileText className="w-5 h-5" />
-              <span>Ver entrada</span>
-            </a>
-          </div>
-        </div>
-        <div className="flex justify-end space-x-2">
-          <Button
-            variant="default"
-            onClick={handleAcceptedEntry}
-          >
-            Entrada Aceptada
-          </Button>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-)}
+        <Card className="mt-6">
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4">Entradas Liberadas</h3>
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded-md border">
+                <h4 className="font-medium mb-2">Entrada Transferida:</h4>
+                <div className="mt-2">
+                  <a         
+                    href={uploadedTicket.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 text-blue-500 hover:text-blue-600 cursor-pointer"
+                  >
+                    <FileText className="w-5 h-5" />
+                    <span>Ver entrada</span>
+                  </a>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="default" onClick={handleAcceptedEntry}>Entrada Aceptada</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {state === TransactionState.Completed && (
         <Card className="mt-6">
-          <CardContent className="p-4">
+          <CardContent>
             <h3 className="font-semibold mb-4 text-orange-600">Finalización</h3>
             <p>La compra ha sido completada satisfactoriamente. ¡Disfruta de tu evento!</p>
+
+            <div className="mt-4">
+              <h4 className="font-semibold">Deje una reseña sobre su experiencia con el vendedor:</h4>
+              <textarea
+                value={review}
+                onChange={(e) => setReview(e.target.value)}
+                rows={4}
+                className="w-full p-2 mt-2 border rounded-md focus:ring-2 focus:ring-primary"
+                placeholder="Escribe tu reseña aquí..."
+              />
+
+              <div className="mt-4 flex items-center space-x-2">
+                <label className="font-semibold">Valoración:</label>
+                <div className="flex space-x-1">
+                  {[...Array(5)].map((_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleStarClick(index)}
+                      className={`w-8 h-8 flex items-center justify-center ${rating > index ? 'text-yellow-400' : 'text-gray-300'}`}
+                    >
+                      {rating > index ? <Star /> : <StarHalf />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-4">
+                <Button variant="default" onClick={handleSubmitReview}>Enviar Reseña</Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
