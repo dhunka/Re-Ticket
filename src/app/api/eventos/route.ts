@@ -1,4 +1,5 @@
 // src/app/api/eventos/route.ts
+'use server'
 import { NextResponse } from "next/server";
 import db from "@/libs/db"; // Verifica que esta ruta sea correcta
 

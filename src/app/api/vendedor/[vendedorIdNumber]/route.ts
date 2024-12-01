@@ -1,4 +1,5 @@
 //src/api/vendedor/[vendedorIdNumber]/route.ts
+'use server'
 import { NextResponse } from 'next/server';
 import db from '@/libs/db'; 
 

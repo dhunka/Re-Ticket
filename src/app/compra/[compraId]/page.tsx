@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Clock, CheckCircle, Star, StarHalf } from 'lucide-react'; // Iconos de lucide-react
+import {  Clock, CheckCircle, Star } from 'lucide-react';
 import axios from 'axios';
 
 interface Ticket {
@@ -16,6 +16,7 @@ interface Ticket {
 interface Compra {
   id: number;
   estado: string;
+  fecha_compra: string;
   comprador?: {
     id: number;
     nombre: string;
@@ -51,7 +52,7 @@ const processStates: ProcessState[] = [
   {
     state: TransactionState.TicketsReleased,
     title: "Entradas Liberadas",
-    description: "El vendedor ha liberado las entradas, Disfrute su entrada."
+    description: "El vendedor ha liberado las entradas. Disfruta tu evento."
   },
 ];
 
@@ -98,13 +99,13 @@ export default function CompraPagina() {
   const compraId = params.compraId as string;
 
   const [compra, setCompra] = useState<Compra | null>(null);
-  const [state, setState] = useState<TransactionState>(TransactionState.WaitingForRelease);
+  const [state, setState] = useState<TransactionState>(TransactionState.OrderPlaced);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(10); // Tiempo restante (en segundos)
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [uploadedTicket, setUploadedTicket] = useState<TicketFile | null>(null);
-  const [rating, setRating] = useState<number>(0); // Para la valoración
-  const [review, setReview] = useState<string>(''); // Para la reseña
+  const [rating, setRating] = useState<number>(0);
+  const [review, setReview] = useState<string>('');
 
   useEffect(() => {
     const fetchCompra = async () => {
@@ -113,6 +114,8 @@ export default function CompraPagina() {
         const response = await axios.get(`/api/ticket/${compraId}`);
         const fetchedCompra = response.data.compra;
         setCompra(fetchedCompra);
+
+        // Configuración del tiempo restante
         const fechaCompra = new Date(fetchedCompra.fecha_compra);
         const fechaLimite = new Date(fechaCompra);
         fechaLimite.setHours(fechaLimite.getHours() + 24);
@@ -125,7 +128,7 @@ export default function CompraPagina() {
         setLoading(false);
       }
     };
-  
+
     if (compraId) {
       fetchCompra();
     }
@@ -143,7 +146,7 @@ export default function CompraPagina() {
           return prevTime - 1;
         });
       }, 1);
-  
+
       return () => clearInterval(timer);
     }
   }, [state, timeLeft]);
@@ -162,12 +165,25 @@ export default function CompraPagina() {
     return (state / totalStates) * 100;
   };
 
-  const handleAcceptedEntry = () => {
+  const handleAcceptedEntry = async () => {
     setState(TransactionState.Completed);
+    if (compra) {
+      try {
+        const response = await axios.patch(`/api/ticket/${compraId}`, { nuevoEstado: 'Completed' });
+        if (response.status === 200) {
+          alert('¡Compra completada!');
+        } else {
+          alert('Error al actualizar el estado');
+        }
+      } catch (error) {
+        alert('Error al realizar la solicitud');
+      }
+    }
   };
+  
 
   const handleStarClick = (index: number) => {
-    setRating(index + 1); // Setea la valoración basada en el índice
+    setRating(index + 1);
   };
 
   const handleSubmitReview = async () => {
@@ -218,19 +234,17 @@ export default function CompraPagina() {
           </div>
 
           <div className="space-y-4">
-            {processStates
-              .filter(s => s.state !== TransactionState.Disputed)
-              .map((processState, index) => (
-                <StatusStep
-                  key={index}
-                  completed={state > processState.state}
-                  active={state === processState.state}
-                  title={processState.title}
-                  description={processState.description}
-                  showTimer={state === processState.state && processState.state === TransactionState.WaitingForRelease}
-                  timeLeft={timeLeft}
-                />
-              ))}
+            {processStates.map((processState, index) => (
+              <StatusStep
+                key={index}
+                completed={state > processState.state}
+                active={state === processState.state}
+                title={processState.title}
+                description={processState.description}
+                showTimer={state === processState.state && processState.state === TransactionState.WaitingForRelease}
+                timeLeft={timeLeft}
+              />
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -243,20 +257,19 @@ export default function CompraPagina() {
               <div className="bg-white p-4 rounded-md border">
                 <h4 className="font-medium mb-2">Entrada Transferida:</h4>
                 <div className="mt-2">
-                  <a         
+                  <a
                     href={uploadedTicket.url}
+                    className="text-blue-600 hover:underline"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-blue-500 hover:text-blue-600 cursor-pointer"
                   >
-                    <FileText className="w-5 h-5" />
-                    <span>Ver entrada</span>
+                    Ver Entrada
                   </a>
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="default" onClick={handleAcceptedEntry}>Entrada Aceptada</Button>
-              </div>
+              <Button className="mt-4" onClick={handleAcceptedEntry}>
+                Confirmar Compra
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -265,38 +278,26 @@ export default function CompraPagina() {
       {state === TransactionState.Completed && (
         <Card className="mt-6">
           <CardContent>
-            <h3 className="font-semibold mb-4 text-orange-600">Finalización</h3>
-            <p>La compra ha sido completada satisfactoriamente. ¡Disfruta de tu evento!</p>
-
+            <h3 className="font-semibold">Valoración del Vendedor</h3>
             <div className="mt-4">
-              <h4 className="font-semibold">Deje una reseña sobre su experiencia con el vendedor:</h4>
+              <div className="flex space-x-2">
+                {[...Array(5)].map((_, index) => (
+                  <Star
+                    key={index}
+                    className={`w-6 h-6 cursor-pointer ${rating > index ? 'text-yellow-400' : 'text-gray-400'}`}
+                    onClick={() => handleStarClick(index)}
+                  />
+                ))}
+              </div>
               <textarea
                 value={review}
                 onChange={(e) => setReview(e.target.value)}
-                rows={4}
-                className="w-full p-2 mt-2 border rounded-md focus:ring-2 focus:ring-primary"
-                placeholder="Escribe tu reseña aquí..."
+                className="w-full mt-4 p-2 border rounded"
+                placeholder="Escribe tu comentario..."
               />
-
-              <div className="mt-4 flex items-center space-x-2">
-                <label className="font-semibold">Valoración:</label>
-                <div className="flex space-x-1">
-                  {[...Array(5)].map((_, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleStarClick(index)}
-                      className={`w-8 h-8 flex items-center justify-center ${rating > index ? 'text-yellow-400' : 'text-gray-300'}`}
-                    >
-                      {rating > index ? <Star /> : <StarHalf />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end mt-4">
-                <Button variant="default" onClick={handleSubmitReview}>Enviar Reseña</Button>
-              </div>
+              <Button onClick={handleSubmitReview} className="mt-4">
+                Enviar Valoración
+              </Button>
             </div>
           </CardContent>
         </Card>

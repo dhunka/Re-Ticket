@@ -1,4 +1,4 @@
-
+'use server'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import db from '@/libs/db';
 
