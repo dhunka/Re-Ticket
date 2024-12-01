@@ -1,3 +1,4 @@
+//app/compra/[compraid]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,7 +6,8 @@ import { useParams } from 'next/navigation';
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {  Clock, CheckCircle, Star } from 'lucide-react';
+import { Textarea } from "@/components/ui/textarea";
+import { Clock, CheckCircle, Star, Send } from 'lucide-react';
 import axios from 'axios';
 
 interface Ticket {
@@ -94,6 +96,110 @@ interface TicketFile {
   url: string;
 }
 
+interface SellerRatingProps {
+  compraId: string;
+  onRatingComplete?: () => void;
+}
+
+const SellerRating: React.FC<SellerRatingProps> = ({ compraId, onRatingComplete }) => {
+  const [rating, setRating] = useState<number>(0);
+  const [review, setReview] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const handleStarClick = (selectedRating: number) => {
+    setRating(selectedRating);
+  };
+
+  const handleSubmitReview = async () => {
+    if (rating < 1 || rating > 5) {
+      alert('Por favor, selecciona una valoración entre 1 y 5 estrellas.');
+      return;
+    }
+
+    if (!review.trim()) {
+      alert('Por favor, escribe un comentario sobre tu experiencia.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await axios.post(`/api/ticket/${compraId}`, {
+        puntuacion: rating,
+        comentario: review,
+      });
+
+      if (response.data && response.data.message) {
+        alert('¡Valoración enviada correctamente!');
+        setRating(0);
+        setReview('');
+        onRatingComplete?.();
+      } else {
+        alert('Hubo un error al registrar la valoración.');
+      }
+    } catch (error) {
+      console.error('Error al enviar la valoración:', error);
+      alert('Hubo un problema al enviar tu valoración. Por favor, intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-md mx-auto shadow-lg  ">
+      <CardHeader>
+        <CardTitle className="text-center text-xl font-bold text-gray-800 ">
+          Valora tu Experiencia
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Star Rating Section */}
+          <div className="flex justify-center space-x-2 mb-4">
+            {[...Array(5)].map((_, index) => (
+              <Star
+                key={index}
+                className={`w-8 h-8 cursor-pointer transition-colors duration-200 ease-in-out 
+                  ${rating > index 
+                    ? 'text-yellow-500 fill-yellow-500 hover:scale-110' 
+                    : 'text-gray-300 hover:text-yellow-300 hover:scale-105'}`}
+                onClick={() => handleStarClick(index + 1)}
+                strokeWidth={1.5}
+              />
+            ))}
+          </div>
+
+          {/* Review Textarea */}
+          <Textarea
+            value={review}
+            onChange={(e) => setReview(e.target.value)}
+            placeholder="Comparte detalles de tu experiencia (opcional)"
+            className="w-full min-h-[100px] resize-y border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all duration-300"
+          />
+
+          {/* Submit Button */}
+          <Button 
+            onClick={handleSubmitReview} 
+            disabled={isSubmitting}
+            className="w-full flex items-center justify-center space-x-2 bg-primary hover:bg-primary-dark transition-colors duration-300"
+          >
+            {isSubmitting ? (
+              <>
+                <span>Enviando...</span>
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5 mr-2" />
+                <span>Enviar Valoración</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export default function CompraPagina() {
   const params = useParams();
   const compraId = params.compraId as string;
@@ -104,8 +210,6 @@ export default function CompraPagina() {
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [uploadedTicket, setUploadedTicket] = useState<TicketFile | null>(null);
-  const [rating, setRating] = useState<number>(0);
-  const [review, setReview] = useState<string>('');
 
   useEffect(() => {
     const fetchCompra = async () => {
@@ -180,40 +284,6 @@ export default function CompraPagina() {
       }
     }
   };
-  
-
-  const handleStarClick = (index: number) => {
-    setRating(index + 1);
-  };
-
-  const handleSubmitReview = async () => {
-    try {
-      if (rating < 1 || rating > 5) {
-        alert('La valoración debe estar entre 1 y 5.');
-        return;
-      }
-      if (!review.trim()) {
-        alert('Por favor, escribe un comentario.');
-        return;
-      }
-
-      const response = await axios.post(`/api/ticket/${compraId}`, {
-        puntuacion: rating,
-        comentario: review,
-      });
-
-      if (response.data && response.data.message) {
-        alert('¡Valoración enviada correctamente!');
-        setRating(0);
-        setReview('');
-      } else {
-        alert('Hubo un error al registrar la valoración.');
-      }
-    } catch (error) {
-      console.error('Error al enviar la valoración:', error);
-      alert('Hubo un error al enviar la valoración.');
-    }
-  };
 
   if (loading) return <div>Cargando...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -276,31 +346,7 @@ export default function CompraPagina() {
       )}
 
       {state === TransactionState.Completed && (
-        <Card className="mt-6">
-          <CardContent>
-            <h3 className="font-semibold">Valoración del Vendedor</h3>
-            <div className="mt-4">
-              <div className="flex space-x-2">
-                {[...Array(5)].map((_, index) => (
-                  <Star
-                    key={index}
-                    className={`w-6 h-6 cursor-pointer ${rating > index ? 'text-yellow-400' : 'text-gray-400'}`}
-                    onClick={() => handleStarClick(index)}
-                  />
-                ))}
-              </div>
-              <textarea
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                className="w-full mt-4 p-2 border rounded"
-                placeholder="Escribe tu comentario..."
-              />
-              <Button onClick={handleSubmitReview} className="mt-4">
-                Enviar Valoración
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <SellerRating compraId={compraId} />
       )}
     </div>
   );
