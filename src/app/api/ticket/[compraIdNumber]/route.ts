@@ -108,7 +108,7 @@ export async function POST(
   }
 }
 
-// PATCH: Actualizar el estado del ticket en función del progreso de la compra
+
 // PATCH: Cambiar el estado del ticket y la compra
 export async function PATCH(
   request: Request, 
@@ -121,30 +121,36 @@ export async function PATCH(
     return NextResponse.json({ error: true, message: 'ID de compra no válido' }, { status: 400 });
   }
 
+  // Mapeo de los estados
+  const estadoMap: { [key: string]: string } = {
+    'WaitingForRelease': 'espera',  // Mapeamos 'WaitingForRelease' a 'espera'
+    'Completed': 'liberado',         // Mapeamos 'Completed' a 'liberado'
+  };
+
   // Verificar si el estado es uno de los valores válidos
-  const estadosValidos = ['OrderPlaced', 'WaitingForRelease', 'TicketsReleased', 'Completed'];
+  const estadosValidos = ['WaitingForRelease', 'Completed'];
   if (!estadosValidos.includes(nuevoEstado)) {
     return NextResponse.json({ error: true, message: 'Estado no válido' }, { status: 400 });
   }
 
   try {
-    // Si el estado es 'TicketsReleased' o 'Completed', actualizamos el estado
+    // Si el estado es 'WaitingForRelease' o 'Completed', actualizamos el estado
     const compra = await db.compra.update({
       where: { id: compraId },
       data: {
         ticket: {
           update: {
-            estado: nuevoEstado, // Actualizar el estado del ticket
+            estado: estadoMap[nuevoEstado], // Actualizar el estado mapeado del ticket
           },
         },
-        estado: nuevoEstado, // Actualizar el estado de la compra
+        estado: estadoMap[nuevoEstado], // Actualizar el estado mapeado de la compra
       },
       include: {
         ticket: true,
       },
     });
 
-    return NextResponse.json({ message: `Estado del ticket y compra actualizado a ${nuevoEstado}`, compra });
+    return NextResponse.json({ message: `Estado del ticket y compra actualizado a ${estadoMap[nuevoEstado]}`, compra });
   } catch (error) {
     return NextResponse.json({ error: true, message: 'Error al actualizar el estado del ticket' }, { status: 500 });
   }

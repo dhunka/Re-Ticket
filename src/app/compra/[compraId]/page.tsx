@@ -270,20 +270,26 @@ export default function CompraPagina() {
   };
 
   const handleAcceptedEntry = async () => {
-    setState(TransactionState.Completed);
+    setState(TransactionState.Completed); // Cambia el estado en el frontend
     if (compra) {
       try {
-        const response = await axios.patch(`/api/ticket/${compraId}`, { nuevoEstado: 'Completed' });
+        const response = await axios.patch(`/api/ticket/${compraId}`, {
+          nuevoEstado: 'Completed', // Asegúrate de que el estado esté correctamente enviado
+        });
+  
         if (response.status === 200) {
           alert('¡Compra completada!');
         } else {
           alert('Error al actualizar el estado');
         }
       } catch (error) {
+        console.error('Error al realizar la solicitud', error);
         alert('Error al realizar la solicitud');
       }
     }
   };
+  
+  
 
   if (loading) return <div>Cargando...</div>;
   if (error) return <div>Error: {error}</div>;

@@ -145,21 +145,43 @@ const InterfazVendedorPage: React.FC = () => {
   }, [state, timeLeft, isTimerActive]); // Dependemos también de isTimerActive
 
   const calculateProgress = () => {
-    // Ahora calculamos el progreso basado en el número de estados posibles
     const totalStates = 2; // Ahora hay solo 3 estados, por lo que totalStates es 2 (maximo)
     return (state / totalStates) * 100;
   };
 
-  // Función para detener el temporizador, que se pasará a UploadForm
+  // Función para detener el temporizador
   const detenerTemporizador = () => {
     setIsTimerActive(false); // Detenemos el temporizador
   };
 
-  // Función para manejar la confirmación de la entrada
+  // Función para manejar la confirmación de la entrada y pasar a Completed
   const handleConfirmarEntrada = () => {
-    setState(TransactionState.TicketsReleased); // Cambiar el estado a TicketsReleased
-    // No es necesario más porque ya no hay estado "Completed"
+    setState(TransactionState.Completed); // Cambiar el estado a Completed
+    actualizarEstadoCompra('Completed'); // Llamamos a la API PATCH con el estado como texto
   };
+
+  // Función para hacer la solicitud PATCH al backend
+  const actualizarEstadoCompra = async (nuevoEstado: string) => { // Ahora es un string
+    try {
+      const response = await fetch(`/api/vendedor/${ventaIdNumber}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nuevoEstado: nuevoEstado }), // Enviar como texto
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log('Estado actualizado:', data);
+    } catch (error) {
+      console.error('Error al actualizar el estado:', error);
+    }
+  };
+  
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
@@ -214,7 +236,7 @@ const InterfazVendedorPage: React.FC = () => {
         </Card>
       )}
 
-        {state === TransactionState.Completed && (
+      {state === TransactionState.Completed && (
         <Card className="mt-6">
           <CardContent className="p-4">
             <h3 className="font-semibold mb-4 text-orange-600">Finalización</h3>
@@ -223,8 +245,6 @@ const InterfazVendedorPage: React.FC = () => {
         </Card>
       )}
     </div>
-
-
   );
 };
 
