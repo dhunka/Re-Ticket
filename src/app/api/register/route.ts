@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         apellido: body.apellido,
         rut: body.rut,
         correo: body.correo,
-        rol: 'vendedor',  // O el rol que desees asignar
+        rol: 'member',  // O el rol que desees asignar
       },
     });
 
