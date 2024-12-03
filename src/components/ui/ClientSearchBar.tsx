@@ -51,26 +51,32 @@ export default function ClientSearchBar() {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // Evita que se recargue la página
+      e.preventDefault(); // Evita la recarga por defecto del formulario
       if (highlightedIndex !== null) {
-        // Si hay un elemento resaltado, se selecciona
+        // Si hay un índice resaltado, redirige a ese evento
         const selectedEvent = results[highlightedIndex];
-        window.location.href = `/evento/${selectedEvent.id}`; // Redirige al evento seleccionado
+        window.location.href = `/evento/${selectedEvent.id}`;
+      } else if (results.length > 0) {
+        // Si no hay resaltado pero hay resultados, redirige al primero
+        const firstEvent = results[0];
+        window.location.href = `/evento/${firstEvent.id}`;
       } else {
-        handleSearch(); // Si no hay elemento resaltado, realiza una búsqueda
+        // Aquí podrías redirigir a una página genérica o mostrar un mensaje
+        console.log("No se encontraron resultados.");
       }
     } else if (e.key === 'ArrowDown') {
-      // Resalta el siguiente elemento
+      // Navega al siguiente elemento
       setHighlightedIndex((prevIndex) =>
         prevIndex === null ? 0 : Math.min(results.length - 1, prevIndex + 1)
       );
     } else if (e.key === 'ArrowUp') {
-      // Resalta el elemento anterior
+      // Navega al elemento anterior
       setHighlightedIndex((prevIndex) =>
-        prevIndex === null ? 0 : Math.max(0, prevIndex - 1)
+        prevIndex === null ? results.length - 1 : Math.max(0, prevIndex - 1)
       );
     }
   };
+  
 
   const handleClickOutside = (e: MouseEvent) => {
     // Si el clic ocurrió fuera del área de la barra de búsqueda, cierra los resultados
@@ -109,7 +115,7 @@ export default function ClientSearchBar() {
         </Button>
       </form>
 
-      {loading && <p className="text-gray-500">Cargando...</p>}
+      {loading && <p className="text-gray-500"></p>}
 
       {isResultsVisible && results.length > 0 && (
         <div className="absolute bg-white shadow-lg w-full sm:w-64 mt-2 rounded-md z-10 max-h-60 overflow-y-auto">
@@ -117,10 +123,10 @@ export default function ClientSearchBar() {
             {results.map((evento, index) => (
               <li
                 key={evento.id}
-                className={`px-4 py-2 hover:bg-orange-100 ${highlightedIndex === index ? 'bg-orange-100' : ''}`} // Resalta el elemento seleccionado
+                className={`px-4 py-2 hover:bg-orange-100 ${highlightedIndex === index ? 'bg-orange-100' : ''}`} 
               >
                 <Link href={`/evento/${evento.id}`} passHref>
-                  <div className="w-full h-full">{evento.nombre}</div> {/* Envolver todo el li con Link */}
+                  <div className="w-full h-full">{evento.nombre}</div> 
                 </Link>
               </li>
             ))}

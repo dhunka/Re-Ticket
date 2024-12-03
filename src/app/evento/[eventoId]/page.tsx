@@ -57,7 +57,7 @@ const EventPage: React.FC<EventPageProps> = ({ params }) => {
   }, [params.eventoId]);
 
   if (loading) {
-    return <div>Cargando...</div>;
+    return <div></div>;
   }
 
   if (error) {

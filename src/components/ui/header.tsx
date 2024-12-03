@@ -1,105 +1,146 @@
-import Link from 'next/link'
-import { Button } from "@/components/ui/button"
-import { Menu } from 'lucide-react'
-import { auth } from '@clerk/nextjs/server'
-import { UserButton } from '@clerk/nextjs'
-import ClientSearchBar from './ClientSearchBar'  // Importamos el componente de búsqueda
+"use client";
 
-export default async function Header() {
-  const { userId } = await auth()
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu,  Home, HelpCircle, Calendar, Ticket, LogIn, UserPlus } from 'lucide-react';
+import { UserButton } from '@clerk/nextjs';
+import ClientSearchBar from './ClientSearchBar';
+import { useState } from 'react';
+
+export default function Header({ userId }: { userId?: string | null }) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="bg-white text-gray-800 shadow-sm">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-orange-500">
-          Re-Ticket
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <Link 
+          href="/" 
+          className="flex items-center gap-2 transition-transform hover:scale-105"
+        >
+          <Ticket className="h-6 w-6 text-orange-500" />
+          <span className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+            Re-Ticket
+          </span>
         </Link>
 
-        {/* Menú para pantallas grandes */}
-        <nav className="hidden md:flex space-x-6">
-          <Link href="/" className="hover:text-orange-500 transition-colors">
-            Inicio
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-6">
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition-colors duration-200"
+          >
+            <Home className="h-4 w-4" />
+            <span>Inicio</span>
           </Link>
-          <Link href="/sobre-nosotros" className="hover:text-orange-500 transition-colors">
-            Preguntas Frecuentes
+          <Link 
+            href="/sobre-nosotros" 
+            className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition-colors duration-200"
+          >
+            <HelpCircle className="h-4 w-4" />
+            <span>Preguntas Frecuentes</span>
           </Link>
-          <Link href="/eventos" className="hover:text-orange-500 transition-colors">
-            Eventos
+          <Link 
+            href="/eventos" 
+            className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition-colors duration-200"
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Eventos</span>
           </Link>
         </nav>
 
-        {/* Área de búsqueda y autenticación */}
-        <div className="hidden md:flex items-center space-x-4">
+        {/* Desktop Search and Auth */}
+        <div className="hidden md:flex items-center gap-4">
           <ClientSearchBar />
           {!userId ? (
-            <>
-              <Link href="/register" className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
-                Registrarse
+            <div className="flex items-center gap-3">
+              <Link href="/login">
+                <Button variant="ghost" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Iniciar Sesión
+                </Button>
               </Link>
-              <Link href="/login" className="text-orange-500 hover:text-orange-600">
-                Iniciar Sesión
+              <Link href="/register">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Registrarse
+                </Button>
               </Link>
-            </>
+            </div>
           ) : (
-            <>
-              <Link href="/perfil" className="text-gray-700 hover:text-orange-500 transition-colors">
+            <div className="flex items-center gap-4">
+              <Link
+                href="/perfil"
+                className="text-gray-600 hover:text-orange-500 transition-colors duration-200"
+              >
                 Perfil
               </Link>
               <UserButton afterSignOutUrl="/" />
-            </>
+            </div>
           )}
         </div>
 
-        {/* Icono del menú para pantallas pequeñas */}
-        <div className="md:hidden flex items-center space-x-2">
-          {!userId ? (
-            <Link href="/register" className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
-              Registrarse
-            </Link>
-          ) : (
-            <UserButton afterSignOutUrl="/" />
-          )}
-
-          {/* Botón de menú */}
-          <label htmlFor="menu-toggle" className="text-orange-500 hover:bg-orange-50">
-            <Button size="icon" variant="ghost">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Abrir menú</span>
-            </Button>
-          </label>
-          <input type="checkbox" id="menu-toggle" className="hidden peer" />
+        {/* Mobile Menu */}
+        <div className="md:hidden flex items-center gap-4">
+          {userId && <UserButton afterSignOutUrl="/" />}
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-orange-500">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Abrir menú</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <div className="flex flex-col gap-6 mt-6">
+                <ClientSearchBar />
+                <nav className="flex flex-col gap-4">
+                  <Link 
+                    href="/" 
+                    className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Home className="h-4 w-4" />
+                    <span>Inicio</span>
+                  </Link>
+                  <Link 
+                    href="/sobre-nosotros" 
+                    className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    <span>Preguntas Frecuentes</span>
+                  </Link>
+                  <Link 
+                    href="/eventos" 
+                    className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span>Eventos</span>
+                  </Link>
+                </nav>
+                {!userId && (
+                  <div className="flex flex-col gap-3">
+                    <Link href="/login" onClick={() => setIsOpen(false)}>
+                      <Button variant="ghost" className="w-full text-orange-500 hover:text-orange-600 hover:bg-orange-50">
+                        <LogIn className="mr-2 h-4 w-4" />
+                        Iniciar Sesión
+                      </Button>
+                    </Link>
+                    <Link href="/register" onClick={() => setIsOpen(false)}>
+                      <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Registrarse
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
-      </div>
-
-      {/* Menú desplegable para pantallas pequeñas */}
-      <div className="md:hidden bg-white shadow-md mt-4 px-4 py-2 space-y-4 peer-checked:block hidden">
-        <Link href="/" className="block hover:text-orange-500 transition-colors">
-          Inicio
-        </Link>
-        <Link href="/sobre-nosotros" className="block hover:text-orange-500 transition-colors">
-          Preguntas Frecuentes
-        </Link>
-        <Link href="/eventos" className="block hover:text-orange-500 transition-colors">
-          Eventos
-        </Link>
-        {!userId ? (
-          <>
-            <Link href="/register" className="block bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
-              Registrarse
-            </Link>
-            <Link href="/login" className="block text-orange-500 hover:text-orange-600">
-              Iniciar Sesión
-            </Link>
-          </>
-        ) : (
-          <>
-            <Link href="/perfil" className="block text-gray-700 hover:text-orange-500 transition-colors">
-              Perfil
-            </Link>
-            <UserButton afterSignOutUrl="/" />
-          </>
-        )}
       </div>
     </header>
-  )
+  );
 }
