@@ -147,7 +147,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
-        <Card className="border-0 shadow-2xl backdrop-blur-sm bg-white/80">
+        <Card className="border-0 shadow-2xl bg-white/80 sm:backdrop-blur-sm" >
           <CardHeader className="space-y-6">
             <div className="flex justify-center">
               <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
