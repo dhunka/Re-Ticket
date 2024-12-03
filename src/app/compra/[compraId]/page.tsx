@@ -218,21 +218,16 @@ export default function CompraPagina() {
         const response = await axios.get(`/api/ticket/${compraId}`);
         const fetchedCompra = response.data.compra;
         setCompra(fetchedCompra);
-
-        // Configuración del tiempo restante
-        const fechaCompra = new Date(fetchedCompra.fecha_compra);
-        const fechaLimite = new Date(fechaCompra);
-        fechaLimite.setHours(fechaLimite.getHours() + 24);
-        const tiempoRestante = Math.max(0, fechaLimite.getTime() - Date.now());
-        setTimeLeft(Math.floor(tiempoRestante / 1000));
-        setState(TransactionState.WaitingForRelease);
+  
+        // Avanzar directamente a TicketsReleased
+        setState(TransactionState.TicketsReleased);
       } catch (err) {
         setError('Error al cargar la compra');
       } finally {
         setLoading(false);
       }
     };
-
+  
     if (compraId) {
       fetchCompra();
     }
@@ -288,6 +283,7 @@ export default function CompraPagina() {
       }
     }
   };
+  
   
   
 

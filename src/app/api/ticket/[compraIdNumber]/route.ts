@@ -1,4 +1,3 @@
-//app/api/ticket/[compraidnumber]/route.ts
 'use server'
 import { NextResponse } from 'next/server';
 import db from '@/libs/db'; 
@@ -36,20 +35,12 @@ export async function GET(
       return NextResponse.json({ error: true, message: `Compra no encontrada con ID ${compraId}` }, { status: 404 });
     }
 
-    const fechaExpiracion = new Date(compra.fecha_compra);
-    fechaExpiracion.setDate(fechaExpiracion.getDate() + 1); // La compra expira en 1 día
-
-    const ahora = new Date();
-    const expirado = ahora > fechaExpiracion;
-    const tiempoRestante = fechaExpiracion.getTime() - ahora.getTime();
+    // Se eliminó la lógica de expiración y tiempo restante
 
     return NextResponse.json({ 
       compra: {
         ...compra,
         ticket: compra.ticket,
-        fechaExpiracion,
-        expirado,
-        tiempoRestante: Math.max(0, tiempoRestante),
       }
     });
   } catch (error) {

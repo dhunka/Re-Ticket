@@ -17,7 +17,7 @@ export async function GET(
     const compra = await db.compra.findUnique({
       where: { id: compraId },
       include: { 
-        comprador: { select: { nombre: true, rut: true } },
+        comprador: { select: { nombre: true, rut: true, apellido: true } },
         ticket: { select: { id: true } },
       },
     });
@@ -37,6 +37,7 @@ export async function GET(
       compra: {
         nombre: compra.comprador.nombre,
         rut: compra.comprador.rut,
+        apellido: compra.comprador.apellido,
         fechaExpiracion,
         expirado,
         tiempoRestante,

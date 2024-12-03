@@ -72,7 +72,7 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada, ticke
   };
 
   const handleLogin = () => {
-    router.push('/sign-in'); // Ruta de Clerk para sign-in
+    router.push('/login'); // Ruta de Clerk para sign-in
   };
 
   const handleRegister = () => {

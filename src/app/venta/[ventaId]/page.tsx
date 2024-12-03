@@ -53,14 +53,8 @@ const StatusStep: React.FC<StatusStepProps> = ({
   title,
   description,
   showTimer = false,
-  timeLeft = 0,
+
 }) => {
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-    return `${hours}h ${minutes}m ${remainingSeconds}s`;
-  };
 
   return (
     <div
@@ -72,7 +66,7 @@ const StatusStep: React.FC<StatusStepProps> = ({
         <p className="text-sm">{description}</p>
         {showTimer && (
           <p className="text-sm font-medium">
-            Tiempo restante: {formatTime(timeLeft)}
+        
           </p>
         )}
       </div>
@@ -87,7 +81,7 @@ const InterfazVendedorPage: React.FC = () => {
 
   const [state, setState] = useState<TransactionState>(TransactionState.WaitingForRelease);
   const [timeLeft, setTimeLeft] = useState<number>(10); // 24 horas por defecto
-  const [buyerData, setBuyerData] = useState<{ name: string; rut: string; fechaCompra: string; ticketId: number } | null>(null);
+  const [buyerData, setBuyerData] = useState<{ name: string; rut: string; fechaCompra: string; ticketId: number; apellido: string; } | null>(null);
   const [isTimerActive, setIsTimerActive] = useState(true); // Estado para controlar el temporizador
 
   useEffect(() => {
@@ -110,6 +104,7 @@ const InterfazVendedorPage: React.FC = () => {
 
             setBuyerData({
               name: data.compra.nombre || 'Nombre no disponible',
+              apellido: data.compra.apellido || 'apelido no disponible',
               rut: data.compra.rut || 'RUT no disponible',
               fechaCompra: fechaExpiracion.toISOString(),
               ticketId: data.compra.ticketId,
@@ -221,7 +216,7 @@ const InterfazVendedorPage: React.FC = () => {
               <div className="bg-white p-4 rounded-md border">
                 <div className="flex items-center space-x-2">
                   <div>
-                    <p>{buyerData.name}</p>
+                    <p>{buyerData.name} {buyerData.apellido}</p>
                     <p className="text-sm text-gray-500">{buyerData.rut}</p>
                   </div>
                 </div>
