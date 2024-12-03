@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Star } from "lucide-react";
 import { MercadoPagoCheckout } from "./checkOutMp";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TipoEntrada, Ticket } from "@prisma/client";
+import { TipoEntrada, Ticket, Usuario, Valoracion } from "@prisma/client";
 import {
   Dialog,
   DialogContent,
@@ -20,13 +20,21 @@ import { useUser } from "@clerk/nextjs";
 
 interface EntradasSelectorProps {
   tiposEntrada: TipoEntrada[];
-  tickets: Ticket[];
+  tickets: (Ticket & { 
+    vendedor: (Usuario & { 
+      valoraciones?: Valoracion[] 
+    }) 
+  })[];
 }
 
 const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada, tickets }) => {
   const router = useRouter();
   const { user } = useUser();
-  const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null);
+  const [selectedTicket, setSelectedTicket] = React.useState<(Ticket & { 
+    vendedor: (Usuario & { 
+      valoraciones?: Valoracion[] 
+    }) 
+  }) | null>(null);
   const [selectedTipoEntradaId, setSelectedTipoEntradaId] = React.useState<number | null>(null);
   const [showAuthDialog, setShowAuthDialog] = React.useState(false);
 
@@ -38,12 +46,22 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada, ticke
     }));
   }, [tiposEntrada]);
 
+  const calculateSellerRating = (valoraciones?: Valoracion[]) => {
+    if (!valoraciones || valoraciones.length === 0) return 0;
+    const avgRating = valoraciones.reduce((sum, val) => sum + val.puntuacion, 0) / valoraciones.length;
+    return Number(avgRating.toFixed(1));
+  };
+
   const handleTipoEntradaChange = (tipoEntradaId: number) => {
     setSelectedTipoEntradaId(tipoEntradaId);
     setSelectedTicket(null);
   };
 
-  const handleEntradaChange = (ticket: Ticket) => {
+  const handleEntradaChange = (ticket: (Ticket & { 
+    vendedor: (Usuario & { 
+      valoraciones?: Valoracion[] 
+    }) 
+  })) => {
     setSelectedTicket(ticket);
   };
 
@@ -90,16 +108,27 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada, ticke
       </Card>
 
       {/* Lista de tickets disponibles según el tipo seleccionado */}
+     
+      <CardTitle className="text-xl text-white">Entradas Disponibles</CardTitle>
+        
       <ul className="space-y-2">
         {filteredTickets.map((ticket) => {
           const tipoEntrada = tiposEntrada.find((tipo) => tipo.id === ticket.tipo_entrada_id);
+          const sellerRating = calculateSellerRating(ticket.vendedor?.valoraciones);
           return (
             <li
               key={ticket.id}
               onClick={() => handleEntradaChange(ticket)}
               className="p-3 bg-gray-900 rounded-md hover:bg-black cursor-pointer text-white flex justify-between items-center"
             >
-              <span>{tipoEntrada ? tipoEntrada.nombre : "Tipo de entrada no encontrado"}</span>
+              <div className="flex flex-col">
+                <span>{tipoEntrada ? tipoEntrada.nombre : "Tipo de entrada no encontrado"}</span>
+                <div className="flex items-center space-x-1 text-sm text-gray-400">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  <span>{sellerRating} ({ticket.vendedor?.valoraciones?.length || 0} valoraciones)</span>
+                  <span>{ticket.vendedor.nombre}</span> {/* Nombre del vendedor */}
+                </div>
+              </div>
               <span>${ticket.precio.toLocaleString()}</span>
             </li>
           );
@@ -168,7 +197,7 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada, ticke
 
       {/* Información importante */}
       <Card className="border-0">
-        <CardContent className="bg-gray-900 flex space-x-4">
+        <CardContent className="bg-gray-900 p-4 rounded-md flex items-center space-x-3">
           <AlertCircle className="h-5 w-5 text-orange-500" />
           <p className="text-sm text-orange-500">
             Las ventas de entradas no son reembolsables y están sujetas a los términos y condiciones.

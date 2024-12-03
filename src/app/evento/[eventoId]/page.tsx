@@ -1,23 +1,28 @@
-
 'use client'
+
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import EntradasSelector from "@/components/ui/EntradaSelector";
-import { Ticket,TipoEntrada,} from "@prisma/client";
+import { Ticket, TipoEntrada, Usuario, Valoracion } from "@prisma/client";
 
+// Interfaz de evento
 interface Evento {
-  id: number; // Asegúrate de incluir el ID del evento
+  id: number;
   nombre: string;
   descripcion: string;
   url_foto: string;
-  fecha_evento: string; // O Date, dependiendo de cómo lo manejes
+  fecha_evento: string;
   ubicacion: string;
-  tickets: Ticket[]; // Asegúrate de que esto coincida con la estructura de tu API
-  tipos_entrada: TipoEntrada[]; // Asegúrate de que esto coincida con la estructura de tu API
+  tickets: (Ticket & {
+    vendedor: Usuario & {
+      valoraciones: Valoracion[]; // Incluyendo las valoraciones en el tipo de vendedor
+    };
+  })[];
+  tipos_entrada: TipoEntrada[];
 }
 
-
+// Props de la página
 interface EventPageProps {
   params: {
     eventoId: string;
@@ -28,13 +33,13 @@ const EventPage: React.FC<EventPageProps> = ({ params }) => {
   const [evento, setEvento] = useState<Evento | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
+  
   useEffect(() => {
     const fetchEvento = async () => {
       try {
         const response = await fetch(`/api/evento/${params.eventoId}`);
         const data = await response.json();
-        
+
         if (data.error) {
           setError(data.error);
           setLoading(false);
@@ -92,9 +97,10 @@ const EventPage: React.FC<EventPageProps> = ({ params }) => {
             </div>
           </div>
 
-          {/* Columna derecha */}
-          <div className="space-y-6">
-          <EntradasSelector
+
+
+            {/* EntradasSelector */}
+            <EntradasSelector
               tiposEntrada={evento.tipos_entrada.map((entrada) => ({
                 id: entrada.id,
                 nombre: entrada.nombre,
@@ -102,12 +108,11 @@ const EventPage: React.FC<EventPageProps> = ({ params }) => {
                 evento_id: entrada.evento_id,
                 descripcion: entrada.descripcion
               }))}
-               tickets={evento.tickets}
+              tickets={evento.tickets}
             />
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

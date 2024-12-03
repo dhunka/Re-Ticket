@@ -71,6 +71,7 @@ model Ticket {
 model Compra {
   id                     Int                 @id @default(autoincrement())
   ticket_id              Int
+  payment_id             String?             @unique
   comprador_id           String
   precio_total           Decimal
   fecha_compra           DateTime            @default(now())
