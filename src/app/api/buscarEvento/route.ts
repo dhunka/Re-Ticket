@@ -1,3 +1,4 @@
+'use server'
 import { NextResponse } from 'next/server'; 
 import db from '@/libs/db';
 
@@ -10,10 +11,11 @@ export async function GET(req: Request) {
   }
 
   try {
+    // Cambiamos `contains` por `startsWith` para buscar solo los eventos que comienzan con el término de búsqueda
     const events = await db.evento.findMany({
       where: {
         nombre: {
-          contains: query, 
+          startsWith: query,  // Aquí se hace la búsqueda solo por eventos cuyo nombre empieza con el término de búsqueda
           mode: 'insensitive', 
         },
       },

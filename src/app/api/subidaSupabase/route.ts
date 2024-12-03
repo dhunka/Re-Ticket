@@ -1,3 +1,4 @@
+'use server'
 import { NextResponse } from 'next/server';
 import { supabase } from '@/libs/supabaseClient'; // Asegúrate de que esta importación sea correcta
 import db from '@/libs/db'; // Asegúrate de tener configurado Prisma correctamente

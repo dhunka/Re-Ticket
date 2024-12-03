@@ -1,4 +1,5 @@
 // app/api/filtro/route.ts
+'use server'
 import db from '@/libs/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';

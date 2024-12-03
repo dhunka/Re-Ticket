@@ -8,7 +8,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import { 
+  AlertCircle, 
+  CheckCircle2, 
+  UserPlus, 
+  Mail, 
+  KeyRound, 
+  User, 
+  Users, 
+  ShieldCheck 
+} from 'lucide-react'
 
 interface ClerkError {
   errors?: Array<{
@@ -136,122 +145,210 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Registro</CardTitle>
-          <CardDescription>Crea una nueva cuenta para acceder a nuestros servicios.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md mx-auto">
+        <Card className="border-0 shadow-2xl backdrop-blur-sm bg-white/80">
+          <CardHeader className="space-y-6">
+            <div className="flex justify-center">
+              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+                <UserPlus className="h-8 w-8 text-primary" strokeWidth={1.5} />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <CardTitle className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-600">
+                Crear Cuenta
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Únete a nuestra plataforma para acceder a todos los servicios
+              </CardDescription>
+            </div>
+          </CardHeader>
 
-          {verificationStatus && (
-            <Alert className="mb-4">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>Estado</AlertTitle>
-              <AlertDescription>{verificationStatus}</AlertDescription>
-            </Alert>
-          )}
+          <CardContent className="space-y-6">
+            {error && (
+              <Alert variant="destructive" className="border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          {!pendingVerification ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {verificationStatus && (
+              <Alert className="border-primary/20 bg-primary/5">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <AlertTitle>Estado</AlertTitle>
+                <AlertDescription>{verificationStatus}</AlertDescription>
+              </Alert>
+            )}
+
+            {!pendingVerification ? (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_name" className="flex items-center gap-2 text-sm font-medium">
+                      <User className="h-4 w-4 text-gray-500" />
+                      Nombre
+                    </Label>
+                    <Input
+                      id="first_name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      disabled={loading}
+                      className="border-gray-200 focus:ring-2 focus:ring-primary/20"
+                      placeholder="Juan"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name" className="flex items-center gap-2 text-sm font-medium">
+                      <Users className="h-4 w-4 text-gray-500" />
+                      Apellido
+                    </Label>
+                    <Input
+                      id="last_name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      disabled={loading}
+                      className="border-gray-200 focus:ring-2 focus:ring-primary/20"
+                      placeholder="Pérez"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">Nombre</Label>
+                  <Label htmlFor="rut" className="flex items-center gap-2 text-sm font-medium">
+                    <ShieldCheck className="h-4 w-4 text-gray-500" />
+                    RUT
+                  </Label>
                   <Input
-                    id="first_name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    id="rut"
+                    value={rut}
+                    onChange={(e) => setRut(e.target.value)}
+                    placeholder="12.345.678-9"
                     required
                     disabled={loading}
+                    className="border-gray-200 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Apellido</Label>
+                  <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    Correo Electrónico
+                  </Label>
                   <Input
-                    id="last_name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tucorreo@ejemplo.com"
                     required
                     disabled={loading}
+                    className="border-gray-200 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rut">RUT</Label>
-                <Input
-                  id="rut"
-                  value={rut}
-                  onChange={(e) => setRut(e.target.value)}
-                  placeholder="Ingrese su RUT"
-                  required
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
+                    <KeyRound className="h-4 w-4 text-gray-500" />
+                    Contraseña
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    minLength={8}
+                    className="border-gray-200 focus:ring-2 focus:ring-primary/20"
+                    placeholder="••••••••"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    La contraseña debe tener al menos 8 caracteres
+                  </p>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base font-medium transition-all hover:opacity-90 bg-gradient-to-r from-primary to-orange-600"
                   disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tucorreo@ejemplo.com"
-                  required
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                      Procesando...
+                    </div>
+                  ) : (
+                    'Crear cuenta'
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={onPressVerify} className="space-y-8">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+                      <Mail className="h-8 w-8 text-primary" strokeWidth={1.5} />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Verifica tu correo</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Te hemos enviado un código de verificación a{' '}
+                      <span className="font-medium text-primary">{email}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="verification_code" className="text-sm font-medium">
+                    Código de Verificación
+                  </Label>
+                  <Input
+                    id="verification_code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    required
+                    className="text-center text-2xl tracking-[1em] font-mono border-gray-200 focus:ring-2 focus:ring-primary/20"
+                    maxLength={6}
+                    placeholder="······"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base font-medium transition-all hover:opacity-90 bg-gradient-to-r from-primary to-orange-400"
                   disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  minLength={8}
-                />
-                <p className="text-xs text-muted-foreground">
-                  La contraseña debe tener al menos 8 caracteres
-                </p>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Procesando...' : 'Crear cuenta'}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={onPressVerify} className="space-y-4">
-              <p className="text-sm text-muted-foreground text-center">
-                Te hemos enviado un código de verificación a {email}.<br />
-                Ingresa el código aquí para completar tu registro.
-              </p>
-              <div className="space-y-2">
-                <Label htmlFor="verification_code">Código de Verificación</Label>
-                <Input
-                  id="verification_code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Verificando...' : 'Verificar cuenta'}
-              </Button>
-            </form>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            ¿Ya tienes una cuenta? <a href="/login" className="text-primary hover:underline">Inicia sesión</a>
-          </p>
-        </CardFooter>
-      </Card>
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                      Verificando...
+                    </div>
+                  ) : (
+                    'Verificar cuenta'
+                  )}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex justify-center py-6">
+            <p className="text-sm text-gray-600">
+              ¿Ya tienes una cuenta?{' '}
+              <a
+                href="/login"
+                className="font-medium text-primary hover:text-orange-400 transition-colors"
+              >
+                Inicia sesión
+              </a>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   )
 }

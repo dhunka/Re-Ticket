@@ -1,100 +1,94 @@
-// app/api/mercadopago/webhook/route.ts
-import db from '@/libs/db';
-import { NextResponse } from 'next/server';
-import { MercadoPagoConfig, Payment } from 'mercadopago';
+// src/api/mercadopago/webhooks/route.ts
+import { NextResponse } from "next/server";
+import { MercadoPagoConfig, Payment } from "mercadopago";
+import db from "@/libs/db";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    if (body.type === 'payment') {
-      const client = new MercadoPagoConfig({
-        accessToken: process.env.MP_ACCESS_TOKEN!,
-      });
+    // Log completo de lo que recibe el webhook
+    console.log('💡 WEBHOOK RECIBIDO');
+    console.log('📍 URL:', request.url);
+    console.log('📦 BODY:', JSON.stringify(body, null, 2));
 
-      const payment = await new Payment(client).get({ id: body.data.id });
+    // Obtener payment_id de cualquiera de los formatos posibles
+    const paymentId = body.data?.id || 
+                     (body.type === 'payment' ? body.resource : null);
 
-      // Verificar la estructura de la respuesta
-      console.log(payment);
-
-      const paymentData = payment;
-
-      if (paymentData.status === 'approved') {
-        // Actualizar el estado de la compra en la base de datos
-        const ticketId = paymentData.metadata.ticketId;
-
-        await db.compra.update({
-          where: { id: ticketId },
-          data: {
-            estado: 'approved',
-            mp_payment_id: paymentData.id?.toString(),
-            mp_payment_status: paymentData.status,
-            mp_merchant_order_id: paymentData.merchant_number,
-            mp_preference_id: paymentData.payment_method_id,
-            mp_external_reference: paymentData.external_reference,
-            fondos_liberados: true,
-            fecha_fondos_liberados: new Date(),
-          },
-        });
-
-        return NextResponse.json({ success: true });
-      } else if (paymentData.status === 'pending') {
-        // Actualizar el estado de la compra a 'pending'
-        const ticketId = paymentData.metadata.ticketId;
-
-        await db.compra.update({
-          where: { id: ticketId },
-          data: {
-            estado: 'pending',
-            mp_payment_id: paymentData.id?.toString(),
-            mp_payment_status: paymentData.status,
-            mp_merchant_order_id: paymentData.merchant_number,
-            mp_preference_id: paymentData.payment_method_id,
-            mp_external_reference: paymentData.external_reference,
-          },
-        });
-
-        return NextResponse.json({ success: true });
-      } else if (paymentData.status === 'rejected') {
-        // Actualizar el estado de la compra a 'rejected'
-        const ticketId = paymentData.metadata.ticketId;
-
-        await db.compra.update({
-          where: { id: ticketId },
-          data: {
-            estado: 'rejected',
-            mp_payment_id: paymentData.id?.toString(),
-            mp_payment_status: paymentData.status,
-            mp_merchant_order_id: paymentData.merchant_number,
-            mp_preference_id: paymentData.payment_method_id,
-            mp_external_reference: paymentData.external_reference,
-          },
-        });
-
-        return NextResponse.json({ success: true });
-      } else if (paymentData.status === 'cancelled') {
-        // Actualizar el estado de la compra a 'cancelled'
-        const ticketId = paymentData.metadata.ticketId;
-
-        await db.compra.update({
-          where: { id: ticketId },
-          data: {
-            estado: 'cancelled',
-            mp_payment_id: paymentData.id?.toString(),
-            mp_payment_status: paymentData.status,
-            mp_merchant_order_id: paymentData.merchant_number,
-            mp_preference_id: paymentData.payment_method_id,
-            mp_external_reference: paymentData.external_reference,
-          },
-        });
-
-        return NextResponse.json({ success: true });
-      }
+    if (!paymentId) {
+      console.log('⚠️ No payment ID encontrado');
+      return new NextResponse(JSON.stringify({ message: "OK" }), { status: 200 });
     }
 
-    return NextResponse.json({ success: true });
+    // Obtener el ID de la compra desde external_reference
+    const compraId = body.external_reference;
+    if (!compraId) {
+      console.log('⚠️ No compra ID encontrado');
+      return new NextResponse(JSON.stringify({ message: "OK" }), { status: 200 });
+    }
+
+    // Obtener la compra y el vendedor
+    const compra = await db.compra.findUnique({
+      where: { id: parseInt(compraId) },
+      include: {
+        ticket: {
+          include: {
+            vendedor: true
+          }
+        }
+      }
+    });
+
+    if (!compra) {
+      console.log('⚠️ Compra no encontrada');
+      return new NextResponse(JSON.stringify({ message: "OK" }), { status: 200 });
+    }
+
+    // Verificar el estado del pago
+    const client = new MercadoPagoConfig({
+      accessToken: compra.ticket.vendedor.mp_access_token!
+    });
+
+    const payment = new Payment(client);
+    const paymentData = await payment.get({ id: paymentId });
+
+    if (paymentData.status === "approved") {
+      // Actualizar la compra a WaitingForRelease
+      await db.compra.update({
+        where: { id: parseInt(compraId) },
+        data: {
+          estado: "WaitingForRelease",
+          payment_id: paymentId.toString()
+        }
+      });
+
+      // El ticket ya está en estado "reservado", no necesitamos actualizarlo
+    } else if (paymentData.status === "rejected" || paymentData.status === "cancelled") {
+      // Actualizar la compra a cancelado
+      await db.compra.update({
+        where: { id: parseInt(compraId) },
+        data: {
+          estado: "cancelado",
+          payment_id: paymentId.toString()
+        }
+      });
+
+      // Devolver el ticket a disponible
+      await db.ticket.update({
+        where: { id: compra.ticket_id },
+        data: { estado: "disponible" }
+      });
+    }
+
+    return new NextResponse(JSON.stringify({ message: "OK" }), { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    return NextResponse.json({ error: 'Error processing webhook' }, { status: 500 });
+    console.error('🔴 ERROR EN WEBHOOK:', error);
+    // Siempre devolver 200 a MP incluso en caso de error
+    return new NextResponse(JSON.stringify({ message: "OK" }), { status: 200 });
   }
 }

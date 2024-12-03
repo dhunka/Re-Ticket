@@ -1,5 +1,8 @@
-import { NextResponse } from "next/server";
-import db from "@/libs/db"; // Asegúrate de que el path es correcto
+
+'use server'
+import { NextResponse } from 'next/server';
+import db from '@/libs/db';
+
 
 export async function GET(req: Request, { params }: { params: { eventoId: string } }) {
   const { eventoId } = params;

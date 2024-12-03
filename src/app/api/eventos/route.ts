@@ -1,10 +1,13 @@
 // src/app/api/eventos/route.ts
+'use server'
 import { NextResponse } from "next/server";
 import db from "@/libs/db"; // Verifica que esta ruta sea correcta
 
 export async function GET() {
   try {
-    const eventos = await db.evento.findMany();
+    const eventos = await db.evento.findMany(
+      { include: { tipos_entrada: true } }
+    );
     return NextResponse.json(eventos);  // Devolver todos los eventos como JSON
   } catch (error) {
     console.error("Error al obtener los eventos:", error);

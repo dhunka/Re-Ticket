@@ -1,4 +1,5 @@
-// api/ticket/[compraIdNumber]/route.ts
+//app/api/ticket/[compraidnumber]/route.ts
+'use server'
 import { NextResponse } from 'next/server';
 import db from '@/libs/db'; 
 
@@ -12,7 +13,6 @@ export async function GET(
   if (isNaN(compraId)) {
     return NextResponse.json({ error: true, message: 'ID de compra no válido' }, { status: 400 });
   }
-
   try {
     const compra = await db.compra.findUnique({
       where: { id: compraId },
@@ -26,6 +26,7 @@ export async function GET(
           select: {
             archivo_url: true,
             id: true,
+            estado: true, // Incluimos el estado del ticket
           },
         },
       },
@@ -83,7 +84,7 @@ export async function POST(
                 vendedor_id: true}}}},
         ticket: {
           include: {
-            vendedor: true,  // Trae el vendedor del ticket
+            vendedor: true,  
           },
         },
       },
@@ -93,18 +94,64 @@ export async function POST(
       return NextResponse.json({ error: true, message: 'Compra no encontrada' }, { status: 404 });
     }
 
-    // Crear la valoración
     const valoracion = await db.valoracion.create({
       data: {
-        vendedor_id: compra.ticket.vendedor.clerkId,  // ID del vendedor
-        comprador_id: compra.comprador.clerkId,       // ID del comprador
+        vendedor_id: compra.ticket.vendedor.clerkId, 
+        comprador_id: compra.comprador.clerkId,       
         puntuacion,
         comentario,
       },
     });
-
     return NextResponse.json({ message: 'Valoración registrada', valoracion });
   } catch (error) {
     return NextResponse.json({ error: true, message: 'Error al registrar la valoración' }, { status: 500 });
+  }
+}
+
+
+// PATCH: Cambiar el estado del ticket y la compra
+export async function PATCH(
+  request: Request, 
+  { params }: { params: { compraIdNumber: string } }
+) {
+  const compraId = parseInt(params.compraIdNumber, 10);
+  const { nuevoEstado } = await request.json(); // Obtén el nuevo estado
+
+  if (isNaN(compraId)) {
+    return NextResponse.json({ error: true, message: 'ID de compra no válido' }, { status: 400 });
+  }
+
+  // Mapeo de los estados
+  const estadoMap: { [key: string]: string } = {
+    'WaitingForRelease': 'espera',  // Mapeamos 'WaitingForRelease' a 'espera'
+    'Completed': 'liberado',         // Mapeamos 'Completed' a 'liberado'
+  };
+
+  // Verificar si el estado es uno de los valores válidos
+  const estadosValidos = ['WaitingForRelease', 'Completed'];
+  if (!estadosValidos.includes(nuevoEstado)) {
+    return NextResponse.json({ error: true, message: 'Estado no válido' }, { status: 400 });
+  }
+
+  try {
+    // Si el estado es 'WaitingForRelease' o 'Completed', actualizamos el estado
+    const compra = await db.compra.update({
+      where: { id: compraId },
+      data: {
+        ticket: {
+          update: {
+            estado: estadoMap[nuevoEstado], // Actualizar el estado mapeado del ticket
+          },
+        },
+        estado: estadoMap[nuevoEstado], // Actualizar el estado mapeado de la compra
+      },
+      include: {
+        ticket: true,
+      },
+    });
+
+    return NextResponse.json({ message: `Estado del ticket y compra actualizado a ${estadoMap[nuevoEstado]}`, compra });
+  } catch (error) {
+    return NextResponse.json({ error: true, message: 'Error al actualizar el estado del ticket' }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+'use server'
 import { NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from 'lucide-react';
@@ -14,6 +14,9 @@ export default function ClientSearchBar() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null); // Índice del elemento resaltado
+  const [isResultsVisible, setIsResultsVisible] = useState(false); // Estado para controlar la visibilidad de los resultados
+  const searchRef = useRef<HTMLDivElement>(null); // Ref para el contenedor de la barra de búsqueda
 
   const handleSearch = useCallback(async () => {
     setLoading(true);
@@ -43,19 +46,64 @@ export default function ClientSearchBar() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setIsResultsVisible(true); // Muestra los resultados mientras se escribe
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Evita que se recargue la página
+      if (highlightedIndex !== null) {
+        // Si hay un elemento resaltado, se selecciona
+        const selectedEvent = results[highlightedIndex];
+        window.location.href = `/evento/${selectedEvent.id}`; // Redirige al evento seleccionado
+      } else {
+        handleSearch(); // Si no hay elemento resaltado, realiza una búsqueda
+      }
+    } else if (e.key === 'ArrowDown') {
+      // Resalta el siguiente elemento
+      setHighlightedIndex((prevIndex) =>
+        prevIndex === null ? 0 : Math.min(results.length - 1, prevIndex + 1)
+      );
+    } else if (e.key === 'ArrowUp') {
+      // Resalta el elemento anterior
+      setHighlightedIndex((prevIndex) =>
+        prevIndex === null ? 0 : Math.max(0, prevIndex - 1)
+      );
+    }
+  };
+
+  const handleClickOutside = (e: MouseEvent) => {
+    // Si el clic ocurrió fuera del área de la barra de búsqueda, cierra los resultados
+    if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      setIsResultsVisible(false);
+    }
+  };
+
+  useEffect(() => {
+    // Escucha los clics fuera del contenedor de la barra de búsqueda
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className="relative">
-      <form className="flex items-center space-x-2">
+    <div className="relative" ref={searchRef}>
+      <form className="flex items-center space-x-2" onSubmit={(e) => e.preventDefault()}>
         <Input
           type="search"
           value={searchTerm}
           onChange={handleSearchChange}
+          onKeyDown={handleKeyDown} // Añadido el manejador de tecla
           placeholder="Buscar..."
-          className="w-64 border-orange-200 focus:border-orange-500 focus:ring-orange-500"
+          className="w-full sm:w-64 border-orange-200 focus:border-orange-500 focus:ring-orange-500"
         />
-        <Button size="icon" variant="ghost" className="text-orange-500 hover:bg-orange-50">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="text-orange-500 hover:bg-orange-50"
+          onClick={handleSearch} // También se puede hacer clic en el botón para buscar
+        >
           <Search className="h-5 w-5" />
           <span className="sr-only">Buscar</span>
         </Button>
@@ -63,13 +111,16 @@ export default function ClientSearchBar() {
 
       {loading && <p className="text-gray-500">Cargando...</p>}
 
-      {results.length > 0 && (
-        <div className="absolute bg-white shadow-lg w-64 mt-2 rounded-md z-10 max-h-60 overflow-y-auto">
+      {isResultsVisible && results.length > 0 && (
+        <div className="absolute bg-white shadow-lg w-full sm:w-64 mt-2 rounded-md z-10 max-h-60 overflow-y-auto">
           <ul>
-            {results.map((evento) => (
-              <li key={evento.id} className="px-4 py-2 hover:bg-orange-100">
+            {results.map((evento, index) => (
+              <li
+                key={evento.id}
+                className={`px-4 py-2 hover:bg-orange-100 ${highlightedIndex === index ? 'bg-orange-100' : ''}`} // Resalta el elemento seleccionado
+              >
                 <Link href={`/evento/${evento.id}`} passHref>
-                  {evento.nombre}
+                  <div className="w-full h-full">{evento.nombre}</div> {/* Envolver todo el li con Link */}
                 </Link>
               </li>
             ))}
