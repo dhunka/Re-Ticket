@@ -1,3 +1,4 @@
+// src/app/VentaEntrada/page.tsx
 'use client'
 import { useState, ChangeEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,16 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
-// Tipos para los datos de la base de datos
-interface Evento {
-  id: number;
-  nombre: string;
-  fecha_evento: Date;
-  categoria: string;
-}
+import { useUser } from "@clerk/nextjs";
+import { useToast } from "@/hooks/use-toast";
 
 interface TipoEntrada {
   id: number;
@@ -27,35 +22,37 @@ interface TipoEntrada {
   precio_base: number;
 }
 
+interface Evento {
+  id: number;
+  nombre: string;
+  fecha_evento: Date;
+  categoria: string;
+  tipos_entrada: TipoEntrada[];
+}
+
 interface FormData {
   evento_id: number;
   tipo_entrada_id: number;
   precio: string;
-  numeroAsiento: string;
-  esPortador: boolean;
-  archivo_url?: string;
 }
 
 export default function FormularioEntrada() {
   const router = useRouter();
+  const { toast } = useToast();
+  const { user } = useUser();
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [tiposEntrada, setTiposEntrada] = useState<TipoEntrada[]>([]);
+  const [tiposEntradaSeleccionados, setTiposEntradaSeleccionados] = useState<TipoEntrada[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     evento_id: 0,
     tipo_entrada_id: 0,
     precio: "",
-    numeroAsiento: "",
-    esPortador: false,
-    archivo_url: "",
   });
 
-  // Cargar eventos y tipos de entrada al montar el componente
   useEffect(() => {
     fetchEventos();
-    fetchTiposEntrada();
   }, []);
 
-  // conseguir los eventos de la db
   const fetchEventos = async () => {
     try {
       const response = await fetch("/api/eventos");
@@ -63,25 +60,37 @@ export default function FormularioEntrada() {
       setEventos(data);
     } catch (error) {
       console.error("Error al cargar eventos:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los eventos",
+        variant: "destructive",
+      });
     }
   };
 
-  // los tipos de entrada de la DB
-  const fetchTiposEntrada = async () => {
-    try {
-      const response = await fetch("/api/tipos-entrada");
-      const data = await response.json();
-      setTiposEntrada(data);
-    } catch (error) {
-      console.error("Error al cargar tipos de entrada:", error);
+  const handleEventoChange = (eventoId: string) => {
+    const eventoSeleccionado = eventos.find(evento => evento.id === parseInt(eventoId));
+    handleSelectChange("evento_id", parseInt(eventoId));
+
+    if (eventoSeleccionado) {
+      setTiposEntradaSeleccionados(eventoSeleccionado.tipos_entrada);
+      setFormData(prev => ({
+        ...prev,
+        tipo_entrada_id: 0,
+        precio: ""
+      }));
     }
+  };
+
+  const handleTipoEntradaChange = (value: string) => {
+    handleSelectChange("tipo_entrada_id", parseInt(value));
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: type === "checkbox" ? checked : value,
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
     }));
   };
 
@@ -92,40 +101,20 @@ export default function FormularioEntrada() {
     }));
   };
 
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      esPortador: checked,
-    }));
-  };
-
-  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files ? e.target.files[0] : null;
-    if (file) {
-      // Subir archivo a tu servicio de almacenamiento (ejemplo con API local)
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await response.json();
-        setFormData((prevData) => ({
-          ...prevData,
-          archivo_url: data.url,
-        }));
-      } catch (error) {
-        console.error("Error al subir archivo:", error);
-      }
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para crear un ticket",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      setIsLoading(true);
       const response = await fetch("/api/CrearEntrada", {
         method: "POST",
         headers: {
@@ -133,97 +122,98 @@ export default function FormularioEntrada() {
         },
         body: JSON.stringify({
           ...formData,
+          vendedor_id: user.id,
           estado: "disponible",
-          fecha_vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días desde ahora
         }),
       });
 
       if (response.ok) {
-        router.push("/tickets"); // Redirigir a la lista de tickets
+        toast({
+          title: "Éxito",
+          description: "Entrada creada correctamente",
+        });
+        router.push("/historialVenta");
       } else {
-        throw new Error("Error al crear el ticket");
+        throw new Error("Error al crear la entrada");
       }
     } catch (error) {
       console.error("Error al enviar el formulario:", error);
+      toast({
+        title: "Error",
+        description: "Error al crear la entrada",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="evento">Evento</Label>
-        <Select
-          onValueChange={(value) =>
-            handleSelectChange("evento_id", parseInt(value))
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecciona un evento" />
-          </SelectTrigger>
-          <SelectContent>
-            {eventos.map((evento) => (
-              <SelectItem key={evento.id} value={evento.id.toString()}>
-                {evento.nombre} -{" "}
-                {new Date(evento.fecha_evento).toLocaleDateString()}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8 bg-white rounded-lg shadow-lg">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-2 border-orange-500 pb-2">
+        Poner Entrada a la Venta
+      </h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="evento" className="text-gray-700">Evento</Label>
+            <Select onValueChange={handleEventoChange} disabled={isLoading}>
+              <SelectTrigger className="bg-white border-gray-300 focus:ring-orange-500 focus:border-orange-500">
+                <SelectValue placeholder="Selecciona un evento" />
+              </SelectTrigger>
+              <SelectContent>
+                {eventos.map((evento) => (
+                  <SelectItem key={evento.id} value={evento.id.toString()}>
+                    {evento.nombre} - {new Date(evento.fecha_evento).toLocaleDateString()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div>
-        <Label htmlFor="tipoEntrada">Tipo de Entrada</Label>
-        <Select
-          onValueChange={(value) =>
-            handleSelectChange("tipo_entrada_id", parseInt(value))
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecciona el tipo de entrada" />
-          </SelectTrigger>
-          <SelectContent>
-            {tiposEntrada.map((tipo) => (
-              <SelectItem key={tipo.id} value={tipo.id.toString()}>
-                {tipo.nombre} - ${tipo.precio_base}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <div>
+            <Label htmlFor="tipoEntrada" className="text-gray-700">Tipo de Entrada</Label>
+            <Select 
+              onValueChange={handleTipoEntradaChange}
+              disabled={isLoading || formData.evento_id === 0}
+            >
+              <SelectTrigger className="bg-white border-gray-300 focus:ring-orange-500 focus:border-orange-500">
+                <SelectValue placeholder="Selecciona el tipo de entrada" />
+              </SelectTrigger>
+              <SelectContent>
+                {tiposEntradaSeleccionados.map((tipo) => (
+                  <SelectItem key={tipo.id} value={tipo.id.toString()}>
+                    {tipo.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-      <div>
-        <Label htmlFor="numeroAsiento">Número de Asiento (si aplica)</Label>
-        <Input type="text" name="numeroAsiento" onChange={handleChange} />
-      </div>
-
-      <div>
-        <Label htmlFor="precio">Precio de Venta</Label>
-        <Input type="number" name="precio" onChange={handleChange} required />
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="esPortador"
-          checked={formData.esPortador}
-          onCheckedChange={handleCheckboxChange}
-        />
-        <Label htmlFor="esPortador">Entrada al portador</Label>
-      </div>
-
-      {formData.esPortador && (
         <div>
-          <Label htmlFor="pdfTicket">Subir PDF del Ticket</Label>
-          <Input
-            type="file"
-            name="pdfTicket"
-            onChange={handleFileChange}
-            accept=".pdf"
+          <Label htmlFor="precio" className="text-gray-700">Tu Precio de Venta</Label>
+          <Input 
+            type="number" 
+            name="precio" 
+            value={formData.precio}
+            onChange={handleChange} 
             required
+            disabled={isLoading}
+            min="0"
+            step="0.01"
+            className="bg-white border-gray-300 focus:ring-orange-500 focus:border-orange-500"
           />
         </div>
-      )}
 
-      <Button type="submit">Crear Ticket</Button>
-    </form>
+        <Button 
+          type="submit"
+          disabled={isLoading || !formData.evento_id || !formData.tipo_entrada_id || !formData.precio}
+          className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out"
+        >
+          {isLoading ? "Creando..." : "Poner a la Venta"}
+        </Button>
+      </form>
+    </div>
   );
 }

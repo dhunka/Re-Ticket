@@ -4,15 +4,24 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+
 interface CheckoutProps {
   title: string;
   price: number;
   quantity: number;
   variant?: string;
   vendedorId: string;
+  ticketId: number;  // Añadir ticketId a las props
 }
 
-export function MercadoPagoCheckout({ title, price, quantity, variant, vendedorId}: CheckoutProps) {
+export function MercadoPagoCheckout({ 
+  title, 
+  price, 
+  quantity, 
+  variant, 
+  vendedorId, 
+  ticketId  // Añadir ticketId a los parámetros
+}: CheckoutProps) {
   const [loading, setLoading] = useState(false);
   const { user } = useUser();
 
@@ -22,7 +31,15 @@ export function MercadoPagoCheckout({ title, price, quantity, variant, vendedorI
     }
     try {
       setLoading(true);
-      console.log(vendedorId)
+      console.log('Enviando datos:', {
+        title: `${title} - ${variant}`,
+        price,
+        quantity,
+        vendedorId,
+        ticketId,  // Incluir ticketId
+        compradorId: user.id,
+      });
+
       const response = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
         headers: {
@@ -33,12 +50,17 @@ export function MercadoPagoCheckout({ title, price, quantity, variant, vendedorI
           price,
           quantity,
           vendedorId,
-          compradorId:user.id,
+          ticketId,  // Incluir ticketId en el body
+          compradorId: user.id,
         }),
       });
 
       const data = await response.json();
-      
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al crear la preferencia de pago');
+      }
+
       if (data.init_point) {
         window.location.href = data.init_point;
       } else {

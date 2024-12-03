@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        return NextResponse.redirect(`${process.env.APP_URL}/autorizacionMp/success`);
+        return NextResponse.redirect(`${process.env.APP_URL}/perfil?status=success`);
     } catch (error) {
         console.error('Error en connect:', error);
         return NextResponse.json(

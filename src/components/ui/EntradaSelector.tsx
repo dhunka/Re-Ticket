@@ -134,6 +134,7 @@ const EntradasSelector: React.FC<EntradasSelectorProps> = ({ tiposEntrada, ticke
                     quantity={1}
                     variant={tiposEntrada.find(tipo => tipo.id === selectedTicket.tipo_entrada_id)?.nombre || "Entrada"}
                     vendedorId={selectedTicket.vendedor_id}
+                    ticketId={selectedTicket.id}
                   />
                 ) : (
                   <Button className="w-full" variant="default">
