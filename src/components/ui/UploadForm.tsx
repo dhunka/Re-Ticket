@@ -137,7 +137,10 @@ export default function UploadForm({ ticketId, onConfirmarEntrada, detenerTempor
               Cargar video de la entrada.
             </p>
           </div>
-
+          <div className="mt-2 text-sm">
+            <p >-El video sera utilizado para probar su testimonio.</p>
+          </div>
+          
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           {/* Mostrar enlaces si los archivos se suben correctamente */}
@@ -158,6 +161,7 @@ export default function UploadForm({ ticketId, onConfirmarEntrada, detenerTempor
           {videoUrl && (
             <div className="text-sm text-gray-600">
               <p>Video prueba subido exitosamente. Puedes verlo aquí:</p>
+   
               <a
                 href={videoUrl}
                 target="_blank"
@@ -166,9 +170,10 @@ export default function UploadForm({ ticketId, onConfirmarEntrada, detenerTempor
               >
                 Ver video
               </a>
+
             </div>
           )}
-
+  
           <div className="flex justify-between">
             <Button
               onClick={ ()=>   detenerTemporizador() }
