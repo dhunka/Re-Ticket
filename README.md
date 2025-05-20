@@ -1,6 +1,6 @@
-# 🎟️ TicketHub – Plataforma de Reventa de Entradas
+# 🎟️ Re-Ticket – Plataforma de Reventa de Entradas
 
-**TicketHub** es una aplicación web para la compra y reventa de tickets de eventos. Está diseñada para ofrecer una experiencia moderna, segura y rápida tanto a compradores como vendedores de entradas.
+**Re-Ticket** es una aplicación web para la compra y reventa de tickets de eventos. Está diseñada para ofrecer una experiencia moderna, segura y rápida tanto a compradores como vendedores de entradas.
 
 ## 🚀 Tecnologías utilizadas
 
