@@ -27,7 +27,7 @@ Gestión de entradas desde un panel de usuario
 1. Clona el repositorio:
 
 ```bash
-   git clone https://github.com/tuusuario/tickethub.git
+   git clone https://github.com/dhunka/Re-Ticket.git
    cd tickethub
 ```
 2. Instala las dependencias:
